@@ -21,6 +21,18 @@ final readonly class AnalysisOptions
         public ClusteringOptions $clustering = new ClusteringOptions,
     ) {}
 
+    public function withDomainMap(BoundaryMap $map): self
+    {
+        return new self(
+            basePath: $this->basePath,
+            paths: $this->paths,
+            exclude: $this->exclude,
+            weights: $this->weights,
+            hotspotLimit: $this->hotspotLimit,
+            clustering: $this->clustering->withDomainMap($map),
+        );
+    }
+
     public static function fromConfig(mixed $config, string $defaultBasePath): self
     {
         if (! is_array($config)) {

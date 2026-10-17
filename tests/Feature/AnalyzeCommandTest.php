@@ -71,6 +71,7 @@ it('lists the suggested domains in the console', function (): void {
         ->doesntExpectOutputToContain('Shared')
         ->assertSuccessful();
 });
+
 it('writes a self-contained html report', function (): void {
     $path = sys_get_temp_dir().'/domain-migrator-report.html';
 
@@ -99,11 +100,61 @@ it('writes the domain map next to the report', function (): void {
 
     $map = json_decode((string) file_get_contents($path), true);
 
-    expect($map['schema'])->toBe(1)
+    $orders = collect($map['domains'])->firstWhere('name', 'Orders');
+
+    expect($map['schema'])->toBe(2)
         ->and($map['shared'])->toBe([])
-        ->and(array_column($map['domains'], 'name'))->toContain('OrderItems');
+        ->and(array_column($map['domains'], 'name'))->toContain('OrderItems')
+        ->and($orders['depends_on'])->toContain('Users')
+        ->and($orders['namespaces'])->toBe([]);
 
     unlink($path);
+});
+
+it('updates a reviewed domain map without losing changes', function (): void {
+    $path = sys_get_temp_dir().'/domain-migrator-map.json';
+    @unlink($path);
+
+    $this->artisan('domain:analyze', ['--map' => $path])->assertSuccessful();
+
+    $map = json_decode((string) file_get_contents($path), true);
+
+    foreach ($map['domains'] as &$domain) {
+        if ($domain['name'] === 'Orders') {
+            $domain['name'] = 'Ordering';
+            $domain['depends_on'] = [];
+        }
+
+        $domain['classes'] = array_values(array_diff($domain['classes'], ['App\Services\InvoiceNumberGenerator']));
+        $domain['depends_on'] = array_values(array_map(fn (string $name): string => $name === 'Orders' ? 'Ordering' : $name, $domain['depends_on']));
+    }
+
+    file_put_contents($path, json_encode($map));
+
+    $this->artisan('domain:analyze', ['--map' => $path, '--update' => true])
+        ->expectsOutputToContain('updated with new classes')
+        ->assertSuccessful();
+
+    $updated = json_decode((string) file_get_contents($path), true);
+    $ordering = collect($updated['domains'])->firstWhere('name', 'Ordering');
+    $placed = collect($updated['domains'])->first(fn (array $domain): bool => in_array('App\Services\InvoiceNumberGenerator', $domain['classes'], true));
+
+    expect($ordering['depends_on'])->toBe([])
+        ->and($ordering['classes'])->toContain('App\Http\Controllers\OrderController')
+        ->and(array_column($updated['domains'], 'name'))->not->toContain('Orders')
+        ->and($placed)->not->toBeNull();
+
+    unlink($path);
+});
+
+it('requires a map to update', function (): void {
+    $this->artisan('domain:analyze', ['--update' => true])
+        ->expectsOutputToContain('The --update option requires --map')
+        ->assertFailed();
+
+    $this->artisan('domain:analyze', ['--update' => true, '--map' => sys_get_temp_dir().'/missing-domain-map.json'])
+        ->expectsOutputToContain('does not exist')
+        ->assertFailed();
 });
 
 it('does not overwrite an existing domain map without --force', function (): void {

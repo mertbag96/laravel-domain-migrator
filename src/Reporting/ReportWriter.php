@@ -7,7 +7,7 @@ namespace MertBag\DomainMigrator\Reporting;
 use Illuminate\Filesystem\Filesystem;
 use InvalidArgumentException;
 use MertBag\DomainMigrator\Data\AnalysisReport;
-use MertBag\DomainMigrator\Data\DomainMap;
+use MertBag\DomainMigrator\Data\BoundaryMap;
 use MertBag\DomainMigrator\Enums\ReportFormat;
 
 final readonly class ReportWriter
@@ -32,7 +32,7 @@ final readonly class ReportWriter
         $this->files->put($path, $this->render($report, $format).PHP_EOL);
     }
 
-    public function writeDomainMap(DomainMap $map, string $path): void
+    public function writeDomainMap(BoundaryMap $map, string $path): void
     {
         $this->files->put($path, $this->json->formatDomainMap($map).PHP_EOL);
     }

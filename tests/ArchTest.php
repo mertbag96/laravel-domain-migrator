@@ -32,4 +32,8 @@ arch('commands delegate to actions')
 
 arch('the analysis core does not depend on the console layer')
     ->expect('MertBag\DomainMigrator\Analysis')
-    ->not->toUse(['MertBag\DomainMigrator\Commands', 'MertBag\DomainMigrator\Reporting', 'Illuminate\Console']);
+    ->not->toUse(['MertBag\DomainMigrator\Commands', 'MertBag\DomainMigrator\Reporting', 'MertBag\DomainMigrator\Boundaries', 'Illuminate\Console']);
+
+arch('boundary checks do not depend on the console layer or on clustering')
+    ->expect('MertBag\DomainMigrator\Boundaries')
+    ->not->toUse(['MertBag\DomainMigrator\Commands', 'MertBag\DomainMigrator\Reporting', 'MertBag\DomainMigrator\Analysis\Clustering', 'Illuminate\Console']);

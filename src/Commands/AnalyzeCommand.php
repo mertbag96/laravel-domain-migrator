@@ -7,9 +7,12 @@ namespace MertBag\DomainMigrator\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Filesystem\Filesystem;
 use MertBag\DomainMigrator\Actions\AnalyzeApplicationAction;
+use MertBag\DomainMigrator\Actions\BuildDomainMapAction;
+use MertBag\DomainMigrator\Boundaries\DomainMapReader;
 use MertBag\DomainMigrator\Data\AnalysisOptions;
 use MertBag\DomainMigrator\Enums\ReportFormat;
 use MertBag\DomainMigrator\Exceptions\InvalidConfigurationException;
+use MertBag\DomainMigrator\Exceptions\InvalidDomainMapException;
 use MertBag\DomainMigrator\Reporting\ConsoleReportRenderer;
 use MertBag\DomainMigrator\Reporting\ReportWriter;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -21,6 +24,7 @@ final class AnalyzeCommand extends Command
         {--format=console : The report format (console, json, html)}
         {--output= : Write the report to this file (json defaults to the terminal, html to domain-report.html)}
         {--map= : Also write the suggested domains to this file, e.g. domain-map.json}
+        {--update : Keep the reviewed domains and rules in the existing map and only place new classes}
         {--force : Overwrite an existing domain map}';
 
     /** @var string */
@@ -28,6 +32,8 @@ final class AnalyzeCommand extends Command
 
     public function handle(
         AnalyzeApplicationAction $analyze,
+        BuildDomainMapAction $buildMap,
+        DomainMapReader $mapReader,
         ConsoleReportRenderer $consoleRenderer,
         ReportWriter $writer,
         Filesystem $files,
@@ -50,23 +56,32 @@ final class AnalyzeCommand extends Command
 
         $outputPath ??= $format->defaultOutputPath();
         $mapPath = $this->stringOption('map');
+        $update = (bool) $this->option('update');
 
-        if ($mapPath !== null && $files->exists($mapPath) && ! $this->option('force')) {
-            $this->components->error("The domain map [{$mapPath}] already exists. Use --force to overwrite it.");
+        if ($update && $mapPath === null) {
+            $this->components->error('The --update option requires --map, e.g. --map=domain-map.json.');
+
+            return self::FAILURE;
+        }
+
+        if ($mapPath !== null && ! $update && $files->exists($mapPath) && ! $this->option('force')) {
+            $this->components->error("The domain map [{$mapPath}] already exists. Use --update to keep your changes and place new classes, or --force to overwrite it.");
 
             return self::FAILURE;
         }
 
         try {
-            $report = $analyze->execute($this->laravel->make(AnalysisOptions::class));
-        } catch (InvalidConfigurationException $exception) {
+            $existingMap = $update ? $mapReader->read($mapPath) : null;
+            $options = $this->laravel->make(AnalysisOptions::class);
+            $report = $analyze->execute($existingMap === null ? $options : $options->withDomainMap($existingMap));
+        } catch (InvalidConfigurationException|InvalidDomainMapException $exception) {
             $this->components->error($exception->getMessage());
 
             return self::FAILURE;
         }
 
         if ($mapPath !== null) {
-            $writer->writeDomainMap($report->domains, $mapPath);
+            $writer->writeDomainMap($buildMap->execute($report, $existingMap), $mapPath);
         }
 
         if ($format === ReportFormat::Console) {
@@ -81,7 +96,9 @@ final class AnalyzeCommand extends Command
         }
 
         if ($mapPath !== null) {
-            $this->components->info("Domain map written to [{$mapPath}]. Review it and commit it to version control.");
+            $this->components->info($existingMap === null
+                ? "Domain map written to [{$mapPath}]. Review it and commit it to version control."
+                : "Domain map [{$mapPath}] updated with new classes. Review the changes before committing them.");
         }
 
         return self::SUCCESS;

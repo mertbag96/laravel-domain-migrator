@@ -128,4 +128,20 @@ return [
         'hotspots' => 10,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Boundaries
+    |--------------------------------------------------------------------------
+    |
+    | Default files for domain:check, relative to the application base path.
+    | The map is created with "domain:analyze --map" and the baseline with
+    | "domain:check --generate-baseline". Commit both to version control.
+    |
+    */
+
+    'boundaries' => [
+        'map' => 'domain-map.json',
+        'baseline' => 'domain-baseline.json',
+    ],
+
 ];

@@ -14,13 +14,29 @@ final readonly class ClusteringOptions
      * @param  int  $sharedMinDomains  A non-model class used by at least this many other domains is treated as shared.
      * @param  int  $baseTypeThreshold  A parent class, interface or trait with at least this many children is a
      *                                  technical base type; inheriting from it does not pull classes into one domain.
+     * @param  list<string>  $shared  Classes that are always shared, for example from a reviewed domain map.
      */
     public function __construct(
         public array $hints = [],
         public float $resolution = 1.0,
         public int $sharedMinDomains = 3,
         public int $baseTypeThreshold = 5,
+        public array $shared = [],
     ) {}
+
+    /**
+     * Keeps the assignments of a reviewed domain map; its domains replace configured hints with the same name.
+     */
+    public function withDomainMap(BoundaryMap $map): self
+    {
+        return new self(
+            hints: [...$this->hints, ...$map->hints()],
+            resolution: $this->resolution,
+            sharedMinDomains: $this->sharedMinDomains,
+            baseTypeThreshold: $this->baseTypeThreshold,
+            shared: array_values(array_unique([...$this->shared, ...$map->shared])),
+        );
+    }
 
     /**
      * @param  array<mixed>  $config

@@ -50,7 +50,11 @@ final readonly class DomainDetector
         $adjacency = $this->clusteringAdjacency($graph, $options, $weights);
         $louvain = new Louvain($options->resolution);
 
-        $shared = $this->sharedClasses($graph, $louvain->partition($adjacency, $hints), $hints, $options->sharedMinDomains);
+        $fixedShared = array_values(array_filter($options->shared, fn (string $class): bool => isset($graph->nodes[$class]) && ! isset($hints[$class])));
+        $adjacency = $this->withoutNodes($adjacency, $fixedShared);
+
+        $shared = [...$fixedShared, ...$this->sharedClasses($graph, $louvain->partition($adjacency, $hints), $hints, $options->sharedMinDomains)];
+        sort($shared);
         $adjacency = $this->withoutNodes($adjacency, $shared);
 
         $communities = [];
@@ -193,7 +197,7 @@ final readonly class DomainDetector
             $otherCommunities = [];
 
             foreach ($graph->dependentsOf($class) as $dependent) {
-                if ($partition[$dependent] !== $community) {
+                if (isset($partition[$dependent]) && $partition[$dependent] !== $community) {
                     $otherCommunities[$partition[$dependent]] = true;
                 }
             }
