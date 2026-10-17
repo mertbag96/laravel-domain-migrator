@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-17
+
+Boundary violations show up in PHPStan, next to the rest of your static analysis.
+
 ### Added
 
 - PHPStan rule that reports the same boundary violations as `domain:check`, with the identifier `domainMigrator.boundary`. It is registered automatically with `phpstan/extension-installer`, reads `domain-map.json` and `domain-baseline.json`, and does nothing until the map exists. On PHPStan 2.3 and newer, editing the map or the baseline re-analyses the affected files.
@@ -69,7 +73,8 @@ First public release.
 - Coupling metrics per class (dependents, dependencies, instability) and a ranked list of hot spots.
 - Unparsable files are reported instead of aborting the analysis.
 
-[Unreleased]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/mertbag96/laravel-domain-migrator/releases/tag/v0.2.0
