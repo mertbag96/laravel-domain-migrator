@@ -109,7 +109,9 @@ An existing map is never overwritten unless you pass `--force`. To add classes w
 php artisan domain:analyze --update --map=domain-map.json
 ```
 
-`--update` keeps every domain, rule and assignment in the map, places new (and previously unassigned) classes, and drops classes that no longer exist. Review the diff before committing it.
+`--update` keeps every domain, rule and assignment in the map, places new (and previously unassigned) classes, and drops classes that no longer exist. Review the diff before committing it: where a new class lands decides which rules apply to it.
+
+Maps written by 0.2 have no `depends_on`, so `domain:check` checks nothing until you run `--update` once, which adds today's dependencies as rules without moving any class.
 
 ### Enforce domain boundaries
 

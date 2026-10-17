@@ -21,7 +21,7 @@ Boundary enforcement: once the team has reviewed the domain map, CI keeps the bo
 
 ### Changed
 
-- Domain maps use schema 2: each domain has `depends_on` (pre-filled with today's domain-to-domain dependencies) and `namespaces`; `cohesion` and `pinned` stay in the analysis report only. Schema 1 maps are still read, and their domains are not checked until `depends_on` is added.
+- Domain maps use schema 2: each domain has `depends_on` (pre-filled with today's domain-to-domain dependencies) and `namespaces`; `cohesion` and `pinned` stay in the analysis report only. Schema 1 maps are still read but not checked; `domain:analyze --update --map=domain-map.json` upgrades them, keeping every assignment and adding `depends_on` from today's dependencies.
 
 ## [0.2.1] - 2026-10-17
 
