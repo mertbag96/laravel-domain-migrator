@@ -62,12 +62,19 @@
             "includes": [
                 "extension.neon"
             ]
+        },
+        "pest": {
+            "plugins": [
+                "MertBag\\DomainMigrator\\Pest\\Plugin"
+            ]
         }
     },
     "suggest": {
+        "pestphp/pest": "Check domain boundaries with arch()->preset()->domains() (^3.0)",
         "phpstan/phpstan": "Report domain boundary violations in PHPStan (^2.1)"
     },
     "conflict": {
+        "pestphp/pest": "<3.0",
         "phpstan/phpstan": "<2.1"
     },
     "minimum-stability": "stable",

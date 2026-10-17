@@ -39,6 +39,11 @@ arch('only the PHPStan integration depends on PHPStan, which is optional')
     ->not->toUse('PHPStan')
     ->ignoring('MertBag\DomainMigrator\PHPStan');
 
+arch('only the Pest integration depends on Pest, which is optional')
+    ->expect('MertBag\DomainMigrator')
+    ->not->toUse(['Pest', 'expect', 'pest'])
+    ->ignoring('MertBag\DomainMigrator\Pest');
+
 arch('boundary checks do not depend on the console layer or on clustering')
     ->expect('MertBag\DomainMigrator\Boundaries')
     ->not->toUse(['MertBag\DomainMigrator\Commands', 'MertBag\DomainMigrator\Reporting', 'MertBag\DomainMigrator\Analysis\Clustering', 'Illuminate\Console']);
