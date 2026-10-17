@@ -74,6 +74,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Clustering
+    |--------------------------------------------------------------------------
+    |
+    | "resolution" tunes domain size: raise it for more, smaller domains.
+    | A class used by at least "shared_min_domains" other domains is moved
+    | to the shared kernel instead of being forced into a single domain.
+    |
+    */
+
+    'clustering' => [
+        'resolution' => 1.0,
+        'shared_min_domains' => 3,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Edge Weights
     |--------------------------------------------------------------------------
     |

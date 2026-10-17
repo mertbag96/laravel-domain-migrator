@@ -8,6 +8,7 @@ use Illuminate\Console\OutputStyle;
 use Illuminate\Console\View\Components\Factory;
 use MertBag\DomainMigrator\Data\AnalysisReport;
 use MertBag\DomainMigrator\Data\ClassMetrics;
+use MertBag\DomainMigrator\Data\DomainMap;
 use MertBag\DomainMigrator\Data\SkippedFile;
 
 final readonly class ConsoleReportRenderer
@@ -21,10 +22,11 @@ final readonly class ConsoleReportRenderer
         ));
 
         $this->renderKinds($report, $output, $components);
+        $this->renderDomains($report, $output, $components);
         $this->renderHotspots($report, $output);
         $this->renderSkippedFiles($report, $components);
 
-        $output->writeln('  Run <fg=yellow>php artisan domain:analyze --format=json</> for the full dependency graph.');
+        $output->writeln('  Run <fg=yellow>php artisan domain:analyze --format=html</> for an interactive dependency graph.');
         $output->newLine();
     }
 
@@ -40,6 +42,34 @@ final readonly class ConsoleReportRenderer
 
         if ($isolated > 0) {
             $components->twoColumnDetail('<fg=gray>Without internal dependencies</>', "<fg=gray>{$isolated}</>");
+        }
+
+        $output->newLine();
+    }
+
+    private function renderDomains(AnalysisReport $report, OutputStyle $output, Factory $components): void
+    {
+        $map = $report->domains;
+
+        if ($map->domains === []) {
+            return;
+        }
+
+        $output->writeln('  <options=bold>Suggested domains</> <fg=gray>(cohesion: share of dependencies that stay inside the domain)</>');
+
+        foreach ($map->domains as $domain) {
+            $components->twoColumnDetail(
+                $domain->name.($domain->pinned ? ' <fg=gray>(from hints)</>' : ''),
+                sprintf('%d %s <fg=gray>·</> %d%% cohesion', count($domain->classes), count($domain->classes) === 1 ? 'class' : 'classes', (int) round($domain->cohesion * 100)),
+            );
+        }
+
+        if ($map->shared !== []) {
+            $components->twoColumnDetail('<fg=yellow>'.DomainMap::SHARED.'</> <fg=gray>(used across many domains)</>', implode(', ', array_map(class_basename(...), $map->shared)));
+        }
+
+        if ($map->unassigned !== []) {
+            $components->twoColumnDetail('<fg=gray>Unassigned</>', '<fg=gray>'.count($map->unassigned).'</>');
         }
 
         $output->newLine();

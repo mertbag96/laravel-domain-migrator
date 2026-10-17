@@ -18,6 +18,7 @@ final readonly class AnalysisOptions
         public array $exclude = [],
         public DependencyWeights $weights = new DependencyWeights,
         public int $hotspotLimit = 10,
+        public ClusteringOptions $clustering = new ClusteringOptions,
     ) {}
 
     public static function fromConfig(mixed $config, string $defaultBasePath): self
@@ -45,6 +46,7 @@ final readonly class AnalysisOptions
             exclude: self::stringList($config, 'exclude'),
             weights: DependencyWeights::fromConfig($config['weights'] ?? []),
             hotspotLimit: $hotspotLimit,
+            clustering: ClusteringOptions::fromConfig($config),
         );
     }
 

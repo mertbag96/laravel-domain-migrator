@@ -3,12 +3,14 @@
 declare(strict_types=1);
 
 use MertBag\DomainMigrator\Actions\AnalyzeApplicationAction;
+use MertBag\DomainMigrator\Analysis\Clustering\DomainDetector;
 use MertBag\DomainMigrator\Analysis\Graph\GraphBuilder;
 use MertBag\DomainMigrator\Analysis\Metrics\MetricsCalculator;
 use MertBag\DomainMigrator\Analysis\Scanning\ClassScanner;
 use MertBag\DomainMigrator\Analysis\Scanning\SourceFileFinder;
 use MertBag\DomainMigrator\Data\AnalysisOptions;
 use MertBag\DomainMigrator\Data\AnalysisReport;
+use MertBag\DomainMigrator\Data\ClusteringOptions;
 use MertBag\DomainMigrator\Enums\ClassKind;
 use MertBag\DomainMigrator\Exceptions\InvalidConfigurationException;
 
@@ -19,6 +21,7 @@ function analyze(AnalysisOptions $options): AnalysisReport
         new ClassScanner,
         new GraphBuilder,
         new MetricsCalculator,
+        new DomainDetector,
     ))->execute($options);
 }
 
@@ -73,6 +76,25 @@ it('limits the number of hot spots', function (): void {
     $options = new AnalysisOptions(fixturePath(), ['app'], ['app/Providers/*'], hotspotLimit: 3);
 
     expect(analyze($options)->hotspots())->toHaveCount(3);
+});
+
+it('suggests domains for the application', function (): void {
+    $domains = analyze(fixtureOptions())->domains;
+
+    expect($domains->shared)->toBe(['App\Models\Order'])
+        ->and($domains->domainOf('App\Models\OrderItem'))->toBe($domains->domainOf('App\Models\Product'))
+        ->and($domains->domainOf('App\Jobs\GenerateInvoice'))->toBe($domains->domainOf('App\Listeners\QueueInvoiceGeneration'));
+});
+
+it('respects domain hints', function (): void {
+    $options = new AnalysisOptions(fixturePath(), ['app'], ['app/Providers/*'], clustering: new ClusteringOptions(hints: [
+        'Billing' => ['App\Models\Invoice', 'App\Jobs\GenerateInvoice'],
+    ]));
+
+    $domains = analyze($options)->domains;
+
+    expect($domains->domainOf('App\Models\Invoice'))->toBe('Billing')
+        ->and($domains->domainOf('App\Jobs\GenerateInvoice'))->toBe('Billing');
 });
 
 it('fails when a scan path does not exist', function (): void {

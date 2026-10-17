@@ -21,6 +21,7 @@ final readonly class AnalysisReport
         public array $metrics,
         public array $skippedFiles,
         public int $hotspotLimit,
+        public DomainMap $domains = new DomainMap,
     ) {}
 
     /**
@@ -79,6 +80,8 @@ final readonly class AnalysisReport
                 'classes' => count($this->graph->nodes),
                 'dependencies' => count($this->graph->edges),
                 'isolated_classes' => $this->isolatedClassCount(),
+                'domains' => count($this->domains->domains),
+                'shared_classes' => count($this->domains->shared),
                 'skipped_files' => count($this->skippedFiles),
             ],
             'kinds' => array_column(
@@ -91,6 +94,7 @@ final readonly class AnalysisReport
                 'kind' => $node->kind->value,
                 'declaration' => $node->declaration->value,
                 'file' => $node->file,
+                'domain' => $this->domains->domainOf($node->name),
                 'dependents' => $this->metrics[$node->name]->afferent,
                 'dependencies' => $this->metrics[$node->name]->efferent,
                 'instability' => $this->metrics[$node->name]->instability,
@@ -101,6 +105,7 @@ final readonly class AnalysisReport
                 'types' => array_map(fn (DependencyType $type): string => $type->value, $dependency->types),
                 'weight' => $dependency->weight,
             ], $this->graph->edges),
+            'domains' => $this->domains->toArray(),
             'hotspots' => array_map(fn (ClassMetrics $metrics): string => $metrics->class, $this->hotspots()),
             'skipped_files' => array_map(fn (SkippedFile $file): array => [
                 'file' => $file->file,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MertBag\DomainMigrator\Actions;
 
+use MertBag\DomainMigrator\Analysis\Clustering\DomainDetector;
 use MertBag\DomainMigrator\Analysis\Graph\GraphBuilder;
 use MertBag\DomainMigrator\Analysis\Metrics\MetricsCalculator;
 use MertBag\DomainMigrator\Analysis\Scanning\ClassScanner;
@@ -21,6 +22,7 @@ final readonly class AnalyzeApplicationAction
         private ClassScanner $scanner,
         private GraphBuilder $graphBuilder,
         private MetricsCalculator $metricsCalculator,
+        private DomainDetector $domainDetector,
     ) {}
 
     /**
@@ -46,6 +48,7 @@ final readonly class AnalyzeApplicationAction
             metrics: $this->metricsCalculator->calculate($graph),
             skippedFiles: $skippedFiles,
             hotspotLimit: $options->hotspotLimit,
+            domains: $this->domainDetector->detect($graph, $options->clustering),
         );
     }
 }
