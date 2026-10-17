@@ -110,13 +110,14 @@
   const data = JSON.parse(document.getElementById('report-data').textContent);
   const SVG_NS = 'http://www.w3.org/2000/svg';
   const SHARED = 'Shared';
-  const PALETTE = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#8b5cf6', '#84cc16', '#ec4899', '#14b8a6', '#f97316', '#3b82f6', '#a855f7'];
   const WIDTH = 1000;
   const HEIGHT = 640;
 
   const domains = data.domains.domains;
   const domainIndex = new Map(domains.map((domain, index) => [domain.name, index]));
-  const colorOf = (domain) => domain === SHARED ? '#64748b' : domainIndex.has(domain) ? PALETTE[domainIndex.get(domain) % PALETTE.length] : '#cbd5e1';
+  // Golden-angle hues keep any number of domains distinct; alternating lightness separates neighbours further.
+  const domainColor = (index) => `hsl(${Math.round((index * 137.508) % 360)}, 68%, ${index % 2 === 0 ? 50 : 62}%)`;
+  const colorOf = (domain) => domain === SHARED ? '#64748b' : domainIndex.has(domain) ? domainColor(domainIndex.get(domain)) : '#cbd5e1';
   const shortName = (name) => name.slice(name.lastIndexOf('\\') + 1);
   const percent = (value) => Math.round(value * 100) + '%';
 
@@ -169,7 +170,11 @@
   links.forEach((link) => { neighbours.get(link.source).add(link.target); neighbours.get(link.target).add(link.source); });
   const hotspots = new Set(data.hotspots.slice(0, 5).map((name) => byName.get(name)));
 
-  const ring = Math.min(WIDTH, HEIGHT) * 0.38;
+  // The ring grows with the domains so that each one gets room for its own cluster.
+  const ring = Math.max(
+    Math.min(WIDTH, HEIGHT) * 0.38,
+    domains.reduce((total, domain) => total + Math.sqrt(domain.classes.length) * 26, 0) / (Math.PI * 2),
+  );
   const centerOf = (domain) => {
     if (domain === SHARED) return { x: 0, y: 0 };
     if (!domainIndex.has(domain)) return null;
@@ -222,7 +227,7 @@
       const dx = link.target.x - link.source.x;
       const dy = link.target.y - link.source.y;
       const distance = Math.sqrt(dx * dx + dy * dy) || 1;
-      const strength = (((distance - (sameDomain ? 40 : 120)) / distance) * (sameDomain ? 0.06 : 0.012)) * alpha;
+      const strength = (((distance - (sameDomain ? 40 : 240)) / distance) * (sameDomain ? 0.06 : 0.003)) * alpha;
       link.source.vx += dx * strength;
       link.source.vy += dy * strength;
       link.target.vx -= dx * strength;
@@ -231,7 +236,7 @@
 
     nodes.forEach((node) => {
       const center = centerOf(node.domain);
-      const pull = center ? 0.02 : 0.004;
+      const pull = center ? 0.035 : 0.004;
       node.vx += ((center?.x ?? 0) - node.x) * pull * alpha;
       node.vy += ((center?.y ?? 0) - node.y) * pull * alpha;
 

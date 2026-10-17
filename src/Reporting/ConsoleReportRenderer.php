@@ -13,6 +13,8 @@ use MertBag\DomainMigrator\Data\SkippedFile;
 
 final readonly class ConsoleReportRenderer
 {
+    private const int SHARED_LISTED = 8;
+
     public function render(AnalysisReport $report, OutputStyle $output, Factory $components): void
     {
         $components->info(sprintf(
@@ -65,7 +67,14 @@ final readonly class ConsoleReportRenderer
         }
 
         if ($map->shared !== []) {
-            $components->twoColumnDetail('<fg=yellow>'.DomainMap::SHARED.'</> <fg=gray>(used across many domains)</>', implode(', ', array_map(class_basename(...), $map->shared)));
+            $components->twoColumnDetail(
+                '<fg=yellow>'.DomainMap::SHARED.'</> <fg=gray>(used across many domains)</>',
+                sprintf('%d %s', count($map->shared), count($map->shared) === 1 ? 'class' : 'classes'),
+            );
+
+            foreach ($this->mostUsedShared($report) as $label => $detail) {
+                $components->twoColumnDetail("  <fg=gray>{$label}</>", "<fg=gray>{$detail}</>");
+            }
         }
 
         if ($map->unassigned !== []) {
@@ -73,6 +82,33 @@ final readonly class ConsoleReportRenderer
         }
 
         $output->newLine();
+    }
+
+    /**
+     * Short class names are used unless two shared classes share one.
+     *
+     * @return array<string, string>
+     */
+    private function mostUsedShared(AnalysisReport $report): array
+    {
+        $shared = $report->domains->shared;
+        $dependents = fn (string $class): int => isset($report->metrics[$class]) ? $report->metrics[$class]->afferent : 0;
+
+        usort($shared, fn (string $a, string $b): int => [$dependents($b), $a] <=> [$dependents($a), $b]);
+
+        $basenameCounts = array_count_values(array_map(class_basename(...), $shared));
+        $listed = [];
+
+        foreach (array_slice($shared, 0, self::SHARED_LISTED) as $class) {
+            $label = $basenameCounts[class_basename($class)] > 1 ? $class : class_basename($class);
+            $listed[$label] = $dependents($class).' dependents';
+        }
+
+        if (count($shared) > self::SHARED_LISTED) {
+            $listed['…and '.(count($shared) - self::SHARED_LISTED).' more'] = '';
+        }
+
+        return $listed;
     }
 
     private function renderHotspots(AnalysisReport $report, OutputStyle $output): void
