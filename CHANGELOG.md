@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- PHPStan rule that reports the same boundary violations as `domain:check`, with the identifier `domainMigrator.boundary`. It is registered automatically with `phpstan/extension-installer`, reads `domain-map.json` and `domain-baseline.json`, and does nothing until the map exists. On PHPStan 2.3 and newer, editing the map or the baseline re-analyses the affected files.
+
 ## [0.3.0] - 2026-10-17
 
 Boundary enforcement: once the team has reviewed the domain map, CI keeps the boundaries from getting worse.

@@ -154,6 +154,38 @@ The command exits with `0` when there are no new violations, `1` when there are,
   run: php artisan domain:check --format=github
 ```
 
+### PHPStan
+
+If your app uses PHPStan 2.1 or newer, the same boundary violations are reported in your editor and in your existing PHPStan run:
+
+```
+ ------ --------------------------------------------------------------------------------------------------
+  Line   app/Http/Controllers/Users/BadgeController.php
+ ------ --------------------------------------------------------------------------------------------------
+  6      App\Http\Controllers\Users\BadgeController (Users) depends on App\Models\Label (Labels), but Users
+         does not list Labels in depends_on.
+         💡 Add Labels to depends_on in domain-map.json if the dependency is intended.
+         🪪 domainMigrator.boundary
+```
+
+With [phpstan/extension-installer](https://github.com/phpstan/extension-installer) the rule is registered automatically. Otherwise, include it in `phpstan.neon`:
+
+```neon
+includes:
+    - vendor/mertbag96/laravel-domain-migrator/extension.neon
+```
+
+The rule does nothing until `domain-map.json` exists, and it skips violations in `domain-baseline.json`. Both paths are relative to the directory PHPStan runs from and can be changed:
+
+```neon
+parameters:
+    domainMigrator:
+        map: %currentWorkingDirectory%/domain-map.json
+        baseline: %currentWorkingDirectory%/domain-baseline.json # or null to report every violation
+```
+
+On PHPStan 2.3 and newer, editing the map or the baseline re-analyses the affected files. On older versions, run `vendor/bin/phpstan clear-result-cache` after editing them.
+
 ## How it works
 
 ### Dependencies
@@ -221,7 +253,8 @@ Classes are grouped with the [Louvain community detection algorithm](https://arx
 | 0.1 | Scanner, dependency graph, coupling metrics, console and JSON report | Done |
 | 0.2 | Domain clustering, shared kernel detection, domain map and an HTML report | Done |
 | 0.3 | Boundary enforcement: `domain:check` with a baseline and GitHub annotations, `--map --update` | Done |
-| 0.3.x | PHPStan rule and Pest arch preset that read the same domain map | Next |
+| 0.3.1 | PHPStan rule that reads the same domain map | Done |
+| 0.3.x | Pest arch preset that reads the same domain map | Next |
 | 0.4–1.0 | `domain:plan` and `domain:move` with Laravel-aware safety handling | Planned |
 
 ## Testing
