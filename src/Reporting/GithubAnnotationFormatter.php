@@ -31,6 +31,10 @@ final readonly class GithubAnnotationFormatter
             )),
         ), $result->violations);
 
+        if ($result->outdatedMap) {
+            $lines[] = '::warning::'.$this->message("The domain map {$mapPath} has no depends_on rules, so nothing was checked. Run php artisan domain:analyze --update --map={$mapPath} to add them.");
+        }
+
         if ($result->fixedEntries !== []) {
             $lines[] = '::notice::'.$this->message(sprintf(
                 '%d baseline %s. Run php artisan domain:check --generate-baseline to remove them.',

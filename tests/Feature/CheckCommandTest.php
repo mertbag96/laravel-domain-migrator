@@ -143,6 +143,30 @@ it('does not check domains without depends_on', function (): void {
         ->assertSuccessful();
 });
 
+it('explains how to upgrade a map from before schema 2', function (): void {
+    editMap($this->mapPath, function (array $map): array {
+        $map['schema'] = 1;
+
+        foreach ($map['domains'] as &$domain) {
+            unset($domain['depends_on']);
+        }
+
+        return $map;
+    });
+
+    [$exitCode, $output] = checkOutput();
+
+    expect($exitCode)->toBe(0)
+        ->and($output)->toContain('was written by an older version and has no depends_on rules, so nothing was checked')
+        ->not->toContain('Not checked because');
+
+    $this->artisan('domain:analyze', ['--update' => true, '--map' => $this->mapPath])->assertSuccessful();
+
+    withoutDependency($this->mapPath, 'Orders', 'Users');
+
+    check()->assertExitCode(1);
+});
+
 it('warns about classes that are not in the map', function (): void {
     editMap($this->mapPath, function (array $map): array {
         $map['domains'][0]['classes'] = array_slice($map['domains'][0]['classes'], 1);

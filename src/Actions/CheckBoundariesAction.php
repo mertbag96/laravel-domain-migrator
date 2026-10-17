@@ -40,6 +40,7 @@ final readonly class CheckBoundariesAction
             unmappedClasses: array_values(array_filter(array_keys($scan->graph->nodes), fn (string $class): bool => ! $map->isMapped($class))),
             skippedFiles: $scan->skippedFiles,
             classCount: count($scan->graph->nodes),
+            outdatedMap: $map->isOutdated(),
         );
     }
 

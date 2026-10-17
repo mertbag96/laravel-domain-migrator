@@ -13,7 +13,7 @@ use MertBag\DomainMigrator\Data\DomainDefinition;
 /**
  * Turns suggested domains into a domain map. A new map allows today's domain-to-domain dependencies so that
  * domain:check passes right away; an updated map keeps every reviewed assignment and rule, and only places
- * classes that are new or were unassigned.
+ * classes that are new or were unassigned. Updating a map from before schema 2 also adds depends_on.
  */
 final readonly class BuildDomainMapAction
 {
@@ -74,7 +74,9 @@ final readonly class BuildDomainMapAction
             ]),
         );
 
-        return $this->withDependencies($map, $report, $newDomains);
+        return $this->withDependencies($map, $report, $existing->isOutdated()
+            ? array_map(fn (DomainDefinition $domain): string => $domain->name, $domains)
+            : $newDomains);
     }
 
     /**

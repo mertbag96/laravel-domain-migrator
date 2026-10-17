@@ -13,6 +13,8 @@ use MertBag\DomainMigrator\Enums\DependencyType;
 
 final readonly class CheckConsoleRenderer
 {
+    private const int UNCHECKED_LISTED = 5;
+
     public function render(BoundaryCheckResult $result, string $mapPath, OutputStyle $output, Factory $components): void
     {
         foreach ($this->groupByDomains($result->violations) as $group => $violations) {
@@ -55,10 +57,13 @@ final readonly class CheckConsoleRenderer
             ));
         }
 
-        if ($result->uncheckedDomains !== []) {
+        if ($result->outdatedMap) {
+            $components->warn("The domain map [{$mapPath}] was written by an older version and has no depends_on rules, so nothing was checked. Run php artisan domain:analyze --update --map={$mapPath} to add today's dependencies as rules.");
+        } elseif ($result->uncheckedDomains !== []) {
             $components->warn(sprintf(
                 'Not checked because they have no depends_on: %s.',
-                implode(', ', $result->uncheckedDomains),
+                implode(', ', array_slice($result->uncheckedDomains, 0, self::UNCHECKED_LISTED))
+                    .(count($result->uncheckedDomains) > self::UNCHECKED_LISTED ? sprintf(' and %d more', count($result->uncheckedDomains) - self::UNCHECKED_LISTED) : ''),
             ));
         }
 

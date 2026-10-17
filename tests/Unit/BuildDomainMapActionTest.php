@@ -58,3 +58,21 @@ it('keeps reviewed domains and rules and only places new classes when updating',
         ->and($map->domain('Billing')?->classes)->not->toContain('Gone\Class')
         ->and($map->shared)->toBe(['Support\Clock']);
 });
+
+it('adds depends_on to every domain when updating a map from before schema 2', function (): void {
+    $existing = new BoundaryMap(
+        domains: [
+            new DomainDefinition('Ordering', ['Order\Models\Order', 'Order\Models\OrderLine', 'Order\Actions\CreateOrder']),
+            new DomainDefinition('Billing', ['Invoice\Models\Invoice', 'Invoice\Models\InvoiceLine', 'Invoice\Actions\CreateInvoice']),
+        ],
+        schema: 1,
+    );
+
+    $report = reportFor(shopGraph(), (new ClusteringOptions)->withDomainMap($existing));
+    $map = (new BuildDomainMapAction(new BoundaryChecker))->execute($report, $existing);
+
+    expect($map->domain('Billing')?->dependsOn)->toBe(['Ordering'])
+        ->and($map->domain('Ordering')?->dependsOn)->toBe([])
+        ->and($map->isOutdated())->toBeFalse()
+        ->and($map->toArray()['schema'])->toBe(2);
+});

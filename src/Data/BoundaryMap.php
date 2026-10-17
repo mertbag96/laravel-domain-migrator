@@ -24,11 +24,13 @@ final readonly class BoundaryMap
      * @param  list<DomainDefinition>  $domains
      * @param  list<string>  $shared  Classes every domain may use.
      * @param  list<string>  $unassigned  Classes that are deliberately left out of every domain.
+     * @param  int  $schema  The schema the map was read with; maps are always written with the current one.
      */
     public function __construct(
         public array $domains = [],
         public array $shared = [],
         public array $unassigned = [],
+        public int $schema = self::SCHEMA_VERSION,
     ) {
         $classIndex = array_fill_keys($shared, DomainMap::SHARED);
         $namespaceIndex = [];
@@ -69,6 +71,14 @@ final readonly class BoundaryMap
         }
 
         return null;
+    }
+
+    /**
+     * Maps from before schema 2 could not express depends_on, so none of their domains are checked yet.
+     */
+    public function isOutdated(): bool
+    {
+        return $this->schema < self::SCHEMA_VERSION;
     }
 
     public function isMapped(string $class): bool

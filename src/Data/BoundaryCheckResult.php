@@ -15,6 +15,7 @@ final readonly class BoundaryCheckResult
      * @param  list<string>  $uncheckedDomains  Domains without depends_on.
      * @param  list<string>  $unmappedClasses  Scanned classes that are not in the domain map.
      * @param  list<SkippedFile>  $skippedFiles
+     * @param  bool  $outdatedMap  Whether the map is from before depends_on existed.
      */
     public function __construct(
         public array $violations,
@@ -24,6 +25,7 @@ final readonly class BoundaryCheckResult
         public array $unmappedClasses,
         public array $skippedFiles,
         public int $classCount,
+        public bool $outdatedMap = false,
     ) {}
 
     public function passed(): bool
@@ -49,6 +51,7 @@ final readonly class BoundaryCheckResult
         return [
             'schema' => self::SCHEMA_VERSION,
             'passed' => $this->passed(),
+            'outdated_map' => $this->outdatedMap,
             'summary' => [
                 'classes' => $this->classCount,
                 'violations' => count($this->violations),

@@ -44,7 +44,9 @@ final readonly class DomainMapReader
      */
     public function parse(mixed $data, string $path): BoundaryMap
     {
-        if (! is_array($data) || ! in_array($data['schema'] ?? null, self::SUPPORTED_SCHEMAS, true)) {
+        $schema = is_array($data) ? ($data['schema'] ?? null) : null;
+
+        if (! is_array($data) || ! is_int($schema) || ! in_array($schema, self::SUPPORTED_SCHEMAS, true)) {
             throw InvalidDomainMapException::unsupportedSchema($path);
         }
 
@@ -64,6 +66,7 @@ final readonly class DomainMapReader
             domains: $domains,
             shared: $this->classList($data['shared'] ?? [], 'shared', $path),
             unassigned: $this->classList($data['unassigned'] ?? [], 'unassigned', $path),
+            schema: $schema,
         );
 
         $this->validate($map, $path);

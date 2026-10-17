@@ -41,7 +41,8 @@ it('reads schema 1 maps written by 0.2 without any rules', function (): void {
         'unassigned' => [],
     ]);
 
-    expect($map->domain('Orders')?->isChecked())->toBeFalse();
+    expect($map->domain('Orders')?->isChecked())->toBeFalse()
+        ->and($map->isOutdated())->toBeTrue();
 });
 
 it('rejects invalid maps', function (mixed $data, string $message): void {
