@@ -35,7 +35,7 @@ final class DependencyVisitor extends NodeVisitorAbstract
         'morphedByMany',
     ];
 
-    /** @var list<string> */
+    /** @var array<string, int> */
     private array $imports = [];
 
     /** @var list<ClassCollector> */
@@ -93,7 +93,7 @@ final class DependencyVisitor extends NodeVisitorAbstract
             $type = $use->type === Stmt\Use_::TYPE_UNKNOWN ? $node->type : $use->type;
 
             if ($type === Stmt\Use_::TYPE_NORMAL) {
-                $this->imports[] = $prefix.$use->name->toString();
+                $this->imports[$prefix.$use->name->toString()] ??= $use->getStartLine();
             }
         }
     }
@@ -111,19 +111,19 @@ final class DependencyVisitor extends NodeVisitorAbstract
             $collector->interfaces = $this->namesOf($node->implements);
         }
 
-        $collector->add($collector->parent, DependencyType::Inheritance);
+        $collector->add($collector->parent, DependencyType::Inheritance, $node->getStartLine());
 
         foreach ($collector->interfaces as $interface) {
-            $collector->add($interface, DependencyType::Inheritance);
+            $collector->add($interface, DependencyType::Inheritance, $node->getStartLine());
         }
 
         foreach ($node->attrGroups as $group) {
             foreach ($group->attrs as $attribute) {
-                $collector->add($this->nameOf($attribute->name), DependencyType::Usage);
+                $collector->add($this->nameOf($attribute->name), DependencyType::Usage, $attribute->getStartLine());
 
                 foreach ($attribute->args as $argument) {
                     foreach ($this->classConstantsIn($argument->value) as $target) {
-                        $collector->add($target, DependencyType::FrameworkBinding);
+                        $collector->add($target, DependencyType::FrameworkBinding, $attribute->getStartLine());
                     }
                 }
             }
@@ -137,7 +137,7 @@ final class DependencyVisitor extends NodeVisitorAbstract
     {
         if ($node instanceof Stmt\TraitUse) {
             foreach ($this->namesOf($node->traits) as $trait) {
-                $collector->add($trait, DependencyType::Inheritance);
+                $collector->add($trait, DependencyType::Inheritance, $node->getStartLine());
             }
         } elseif (
             $node instanceof Expr\New_
@@ -147,15 +147,15 @@ final class DependencyVisitor extends NodeVisitorAbstract
             || $node instanceof Expr\Instanceof_
         ) {
             if ($node->class instanceof Name) {
-                $collector->add($this->nameOf($node->class), DependencyType::Usage);
+                $collector->add($this->nameOf($node->class), DependencyType::Usage, $node->getStartLine());
             }
         } elseif ($node instanceof Stmt\Catch_) {
             foreach ($this->namesOf($node->types) as $type) {
-                $collector->add($type, DependencyType::Usage);
+                $collector->add($type, DependencyType::Usage, $node->getStartLine());
             }
         } elseif ($node instanceof Node\Param || $node instanceof Stmt\Property) {
             foreach ($this->typeNames($node->type) as $type) {
-                $collector->add($type, DependencyType::Usage);
+                $collector->add($type, DependencyType::Usage, $node->getStartLine());
             }
         } elseif ($node instanceof Expr\MethodCall) {
             $this->collectRelationship($node, $collector);
@@ -163,7 +163,7 @@ final class DependencyVisitor extends NodeVisitorAbstract
 
         if ($node instanceof Node\FunctionLike) {
             foreach ($this->typeNames($node->getReturnType()) as $type) {
-                $collector->add($type, DependencyType::Usage);
+                $collector->add($type, DependencyType::Usage, $node->getStartLine());
             }
         }
 
@@ -186,7 +186,7 @@ final class DependencyVisitor extends NodeVisitorAbstract
 
         foreach ($node->getArgs() as $argument) {
             foreach ($this->classConstantsIn($argument->value) as $target) {
-                $collector->add($target, DependencyType::Relationship);
+                $collector->add($target, DependencyType::Relationship, $node->getStartLine());
             }
         }
     }

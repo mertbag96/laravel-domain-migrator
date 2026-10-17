@@ -103,6 +103,31 @@ it('collects every class declared in a file and ignores anonymous classes', func
     ]);
 });
 
+it('records the line of the first reference to each dependency', function (): void {
+    $file = temporaryPhpFile(<<<'PHP'
+        <?php
+
+        namespace App\Billing;
+
+        class Invoice extends Document
+        {
+            public function send(Mailer $mailer): void
+            {
+                new Receipt;
+                new Receipt;
+            }
+        }
+        PHP);
+
+    [$invoice] = (new ClassScanner)->scan($file);
+
+    expect($invoice->lines)->toBe([
+        'App\Billing\Document' => 5,
+        'App\Billing\Mailer' => 7,
+        'App\Billing\Receipt' => 9,
+    ]);
+});
+
 it('throws for files with syntax errors', function (): void {
     (new ClassScanner)->scan(fixtureFile('app/Support/Broken.php'));
 })->throws(UnparsableFileException::class);

@@ -32,6 +32,7 @@ final readonly class GraphBuilder
         ksort($nodes);
 
         $edges = [];
+        $lines = [];
 
         foreach ($classes as $class) {
             foreach ($this->dependenciesOf($class, $nodes[$class->name]->kind) as $target => $types) {
@@ -42,10 +43,14 @@ final readonly class GraphBuilder
                 foreach ($types as $type) {
                     $edges[$class->name][$target][$type->value] = $type;
                 }
+
+                if (isset($class->lines[$target])) {
+                    $lines[$class->name][$target] ??= $class->lines[$target];
+                }
             }
         }
 
-        return new DependencyGraph($nodes, $this->toDependencies($edges, $weights));
+        return new DependencyGraph($nodes, $this->toDependencies($edges, $lines, $weights));
     }
 
     /**
@@ -65,9 +70,10 @@ final readonly class GraphBuilder
 
     /**
      * @param  array<string, array<string, array<string, DependencyType>>>  $edges
+     * @param  array<string, array<string, int>>  $lines
      * @return list<Dependency>
      */
-    private function toDependencies(array $edges, DependencyWeights $weights): array
+    private function toDependencies(array $edges, array $lines, DependencyWeights $weights): array
     {
         $dependencies = [];
 
@@ -89,6 +95,7 @@ final readonly class GraphBuilder
                         fn (int $weight, DependencyType $type): int => max($weight, $weights->of($type)),
                         0,
                     ),
+                    line: $lines[$source][$target] ?? null,
                 );
             }
         }
