@@ -29,8 +29,10 @@ function fixtureOptions(): AnalysisOptions
 
 function temporaryPhpFile(string $code): SourceFile
 {
-    $path = tempnam(sys_get_temp_dir(), 'domain-migrator').'.php';
+    $path = sys_get_temp_dir().'/domain-migrator-'.bin2hex(random_bytes(8)).'.php';
     file_put_contents($path, $code);
+
+    register_shutdown_function(static fn (): bool => @unlink($path));
 
     return new SourceFile($path, basename($path));
 }
