@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Pest arch preset: `arch()->preset()->domains()` fails on the same boundary violations as `domain:check` and shows the same report. It is registered automatically on Pest 3 and newer, honors `domain-baseline.json`, and reads `config/domain-migrator.php` when the application is not booted.
+
 ## [0.3.1] - 2026-10-17
 
 Boundary violations show up in PHPStan, next to the rest of your static analysis.

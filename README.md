@@ -18,7 +18,7 @@ Move a growing Laravel MVC app toward a modular, domain-oriented structure — s
 The package works in three phases:
 
 1. **Analyze** (read-only, available now) — parses your app, builds a weighted dependency graph of models, relationships, controllers, jobs, events and services, suggests candidate domains and a shared kernel, and highlights coupling hot spots.
-2. **Enforce** (available now as `domain:check`) — fails CI when a class starts depending on a domain its own domain is not allowed to use, with a baseline for existing violations. A PHPStan rule and a Pest arch preset are coming next.
+2. **Enforce** (available now) — fails CI when a class starts depending on a domain its own domain is not allowed to use, with a baseline for existing violations. Run it as `domain:check`, as a PHPStan rule or as a Pest arch preset; all three read the same domain map.
 3. **Migrate** (planned) — moves a domain's classes into `app/Domain/{Name}` with Rector and handles the Laravel-specific traps: morph maps, serialized queued jobs, factory and policy discovery, and string class references.
 
 It does not try to "do DDD for you". Modeling the business is still your job; this package removes the mechanical work and the risk around it.
@@ -186,6 +186,28 @@ parameters:
 
 On PHPStan 2.3 and newer, editing the map or the baseline re-analyses the affected files. On older versions, run `vendor/bin/phpstan clear-result-cache` after editing them.
 
+### Pest
+
+If your app uses Pest 3 or newer, the package registers a `domains` arch preset. Add it to an arch test:
+
+```php
+// tests/ArchTest.php
+
+arch()->preset()->domains();
+```
+
+It fails on the same violations as `domain:check`, with the same report:
+
+```
+  FAILED  Tests\ArchTest > preset → domains
+  Orders → Users (not in depends_on)
+  app/Actions/PlaceOrderAction.php:7  PlaceOrderAction uses Order (usage, import)
+
+   ERROR  1 new boundary violation. If a dependency is intended, add the domain to depends_on in [domain-map.json]; otherwise remove it.
+```
+
+The preset reads the map, the baseline and the scan settings from `config/domain-migrator.php`, so it does not need the application to be booted. It also fails when the map is missing or was written by 0.2 and has no `depends_on` rules yet.
+
 ## How it works
 
 ### Dependencies
@@ -239,7 +261,7 @@ Classes are grouped with the [Louvain community detection algorithm](https://arx
     'import' => 1,
 ],
 
-// Default files for domain:check, relative to the application base path.
+// Default files for domain:check and the Pest preset, relative to the application base path.
 'boundaries' => [
     'map' => 'domain-map.json',
     'baseline' => 'domain-baseline.json',
@@ -254,8 +276,8 @@ Classes are grouped with the [Louvain community detection algorithm](https://arx
 | 0.2 | Domain clustering, shared kernel detection, domain map and an HTML report | Done |
 | 0.3 | Boundary enforcement: `domain:check` with a baseline and GitHub annotations, `--map --update` | Done |
 | 0.3.1 | PHPStan rule that reads the same domain map | Done |
-| 0.3.x | Pest arch preset that reads the same domain map | Next |
-| 0.4–1.0 | `domain:plan` and `domain:move` with Laravel-aware safety handling | Planned |
+| 0.3.2 | Pest arch preset that reads the same domain map | Done |
+| 0.4–1.0 | `domain:plan` and `domain:move` with Laravel-aware safety handling | Next |
 
 ## Testing
 
