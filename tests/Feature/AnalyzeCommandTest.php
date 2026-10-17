@@ -58,10 +58,70 @@ it('rejects unsupported formats', function (): void {
         ->assertFailed();
 });
 
-it('requires the json format when writing to a file', function (): void {
+it('requires a file format when writing to a file', function (): void {
     $this->artisan('domain:analyze', ['--output' => 'report.json'])
-        ->expectsOutputToContain('The --output option requires --format=json.')
+        ->expectsOutputToContain('The --output option requires --format=json or --format=html.')
         ->assertFailed();
+});
+
+it('lists the suggested domains and the shared kernel in the console', function (): void {
+    $this->artisan('domain:analyze')
+        ->expectsOutputToContain('Suggested domains')
+        ->expectsOutputToContain('OrderItems')
+        ->expectsOutputToContain('Shared')
+        ->assertSuccessful();
+});
+
+it('writes a self-contained html report', function (): void {
+    $path = sys_get_temp_dir().'/domain-migrator-report.html';
+
+    $this->artisan('domain:analyze', ['--format' => 'html', '--output' => $path])
+        ->expectsOutputToContain('Report written to')
+        ->assertSuccessful();
+
+    $html = (string) file_get_contents($path);
+    preg_match('#<script type="application/json" id="report-data">(.*?)</script>#s', $html, $matches);
+
+    expect($html)->toStartWith('<!DOCTYPE html>')
+        ->not->toContain('{{REPORT_JSON}}')
+        ->not->toContain('src="http')
+        ->and(json_decode($matches[1], true)['summary']['classes'])->toBe(18);
+
+    unlink($path);
+});
+
+it('writes the domain map next to the report', function (): void {
+    $path = sys_get_temp_dir().'/domain-migrator-map.json';
+    @unlink($path);
+
+    $this->artisan('domain:analyze', ['--map' => $path])
+        ->expectsOutputToContain('Domain map written to')
+        ->assertSuccessful();
+
+    $map = json_decode((string) file_get_contents($path), true);
+
+    expect($map['schema'])->toBe(1)
+        ->and($map['shared'])->toBe(['App\Models\Order'])
+        ->and(array_column($map['domains'], 'name'))->toContain('OrderItems');
+
+    unlink($path);
+});
+
+it('does not overwrite an existing domain map without --force', function (): void {
+    $path = sys_get_temp_dir().'/domain-migrator-map.json';
+    file_put_contents($path, '{"edited": true}');
+
+    $this->artisan('domain:analyze', ['--map' => $path])
+        ->expectsOutputToContain('already exists')
+        ->assertFailed();
+
+    expect(file_get_contents($path))->toBe('{"edited": true}');
+
+    $this->artisan('domain:analyze', ['--map' => $path, '--force' => true])->assertSuccessful();
+
+    expect(json_decode((string) file_get_contents($path), true))->toHaveKey('domains');
+
+    unlink($path);
 });
 
 it('reports configuration errors', function (): void {

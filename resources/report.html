@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Domain report · Laravel Domain Migrator</title>
+<style>
+  :root { --bg: #f8fafc; --panel: #ffffff; --border: #e2e8f0; --text: #0f172a; --muted: #64748b; --accent: #6366f1; --edge: #94a3b8; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0b1120; --panel: #111827; --border: #1f2937; --text: #e5e7eb; --muted: #94a3b8; --edge: #475569; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  a { color: var(--accent); }
+  header { padding: 28px 32px 0; }
+  h1 { margin: 0; font-size: 22px; }
+  h2 { margin: 0 0 12px; font-size: 15px; }
+  h3 { margin: 0; font-size: 14px; }
+  .muted { color: var(--muted); }
+  main { display: grid; gap: 20px; padding: 20px 32px 40px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .card, .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; }
+  .card { padding: 14px 16px; }
+  .card .value { font-size: 24px; font-weight: 600; }
+  .card .label { color: var(--muted); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+  .panel { padding: 16px; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; }
+  @media (max-width: 1000px) { .layout { grid-template-columns: 1fr; } }
+  .graph-panel { overflow: hidden; padding: 0; }
+  .toolbar { display: flex; gap: 8px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .toolbar input[type=search] { flex: 1; padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; }
+  button, .toggle { padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); color: var(--text); font: inherit; font-size: 13px; cursor: pointer; user-select: none; }
+  svg { display: block; width: 100%; height: 640px; cursor: grab; }
+  svg.panning { cursor: grabbing; }
+  .edge { stroke: var(--edge); stroke-opacity: .45; }
+  .node { stroke: var(--panel); stroke-width: 1.5; cursor: pointer; }
+  .node.selected { stroke: var(--text); stroke-width: 2.5; }
+  .label { fill: var(--text); font-size: 11px; pointer-events: none; paint-order: stroke; stroke: var(--panel); stroke-width: 3px; }
+  .dim { opacity: .1; }
+  .legend-item { display: flex; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+  .legend-item:hover, .legend-item.active { background: var(--bg); }
+  .legend-item .grow { flex: 1; min-width: 0; }
+  .legend-item .count { color: var(--muted); font-size: 12px; }
+  .swatch { flex: none; width: 12px; height: 12px; border-radius: 50%; }
+  .bar { height: 4px; margin-top: 4px; border-radius: 2px; background: var(--border); }
+  .bar > span { display: block; height: 100%; border-radius: 2px; background: var(--accent); }
+  .details { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .details dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 8px 0 12px; }
+  .details dt { color: var(--muted); }
+  .details dd { margin: 0; word-break: break-all; }
+  .details ul { margin: 4px 0 12px; padding-left: 18px; }
+  .details li a { cursor: pointer; text-decoration: none; }
+  .domains { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .domain { padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px; }
+  .domain h3 { display: flex; gap: 8px; align-items: center; }
+  .domain ul { margin: 8px 0 0; padding-left: 18px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+  th { color: var(--muted); font-size: 12px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  code { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+  footer { padding: 0 32px 32px; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Domain report</h1>
+  <p class="muted" id="subtitle"></p>
+</header>
+<main>
+  <section class="cards" id="cards"></section>
+  <section class="layout">
+    <div class="panel graph-panel">
+      <div class="toolbar">
+        <input type="search" id="search" placeholder="Search classes…" aria-label="Search classes">
+        <label class="toggle"><input type="checkbox" id="show-labels"> Labels</label>
+        <button type="button" id="reset">Reset view</button>
+      </div>
+      <svg id="graph" role="img" aria-label="Class dependency graph colored by domain">
+        <g id="viewport"><g id="edges"></g><g id="nodes"></g><g id="labels"></g></g>
+      </svg>
+    </div>
+    <aside class="panel">
+      <h2>Domains</h2>
+      <div id="legend"></div>
+      <div class="details" id="details"></div>
+    </aside>
+  </section>
+  <section class="panel">
+    <h2>Suggested domains</h2>
+    <p class="muted">Cohesion is the share of a domain's dependency weight that stays inside it. Edit <code>domain-map.json</code> to adjust the grouping.</p>
+    <div class="domains" id="domain-list"></div>
+  </section>
+  <section class="panel">
+    <h2>Coupling hot spots</h2>
+    <p class="muted">Classes with the most dependents. They are the hardest to move and the first candidates for a shared kernel or a public contract.</p>
+    <table id="hotspots"></table>
+  </section>
+  <section class="panel" id="skipped-panel" hidden>
+    <h2>Skipped files</h2>
+    <table id="skipped"></table>
+  </section>
+</main>
+<footer>Generated by <a href="https://github.com/mertbag96/laravel-domain-migrator">laravel-domain-migrator</a>.</footer>
+<script type="application/json" id="report-data">{{REPORT_JSON}}</script>
+<script>
+(() => {
+  'use strict';
+
+  const data = JSON.parse(document.getElementById('report-data').textContent);
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const SHARED = 'Shared';
+  const PALETTE = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#8b5cf6', '#84cc16', '#ec4899', '#14b8a6', '#f97316', '#3b82f6', '#a855f7'];
+  const WIDTH = 1000;
+  const HEIGHT = 640;
+
+  const domains = data.domains.domains;
+  const domainIndex = new Map(domains.map((domain, index) => [domain.name, index]));
+  const colorOf = (domain) => domain === SHARED ? '#64748b' : domainIndex.has(domain) ? PALETTE[domainIndex.get(domain) % PALETTE.length] : '#cbd5e1';
+  const shortName = (name) => name.slice(name.lastIndexOf('\\') + 1);
+  const percent = (value) => Math.round(value * 100) + '%';
+
+  const el = (tag, attributes = {}, text) => {
+    const node = document.createElement(tag);
+    Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, value));
+    if (text !== undefined) node.textContent = text;
+    return node;
+  };
+
+  const svgEl = (tag, attributes = {}) => {
+    const node = document.createElementNS(SVG_NS, tag);
+    Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, value));
+    return node;
+  };
+
+  let seed = 42;
+  const random = () => {
+    seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+
+  // Summary
+
+  document.getElementById('subtitle').textContent =
+    `${data.summary.classes} classes · ${data.summary.dependencies} internal dependencies · ${data.summary.domains} suggested domains`;
+
+  [
+    ['Classes', data.summary.classes],
+    ['Dependencies', data.summary.dependencies],
+    ['Domains', data.summary.domains],
+    ['Shared classes', data.summary.shared_classes],
+    ['Skipped files', data.summary.skipped_files],
+  ].forEach(([label, value]) => {
+    const card = el('div', { class: 'card' });
+    card.append(el('div', { class: 'value' }, String(value)), el('div', { class: 'label' }, label));
+    document.getElementById('cards').append(card);
+  });
+
+  // Graph model
+
+  const nodes = data.classes.map((entry) => ({ ...entry, x: 0, y: 0, vx: 0, vy: 0, fixed: false, r: 4 + Math.sqrt(entry.dependents) * 2.2 }));
+  const byName = new Map(nodes.map((node) => [node.name, node]));
+  const links = data.dependencies
+    .map((entry) => ({ source: byName.get(entry.source), target: byName.get(entry.target), weight: entry.weight, types: entry.types }))
+    .filter((link) => link.source && link.target);
+  const neighbours = new Map(nodes.map((node) => [node, new Set()]));
+  links.forEach((link) => { neighbours.get(link.source).add(link.target); neighbours.get(link.target).add(link.source); });
+  const hotspots = new Set(data.hotspots.slice(0, 5).map((name) => byName.get(name)));
+
+  const ring = Math.min(WIDTH, HEIGHT) * 0.38;
+  const centerOf = (domain) => {
+    if (domain === SHARED) return { x: 0, y: 0 };
+    if (!domainIndex.has(domain)) return null;
+    const angle = (domainIndex.get(domain) / Math.max(domains.length, 1)) * Math.PI * 2;
+    return { x: Math.cos(angle) * ring, y: Math.sin(angle) * ring };
+  };
+
+  nodes.forEach((node) => {
+    const center = centerOf(node.domain) ?? { x: (random() - 0.5) * WIDTH, y: (random() - 0.5) * HEIGHT };
+    node.x = center.x + (random() - 0.5) * 80;
+    node.y = center.y + (random() - 0.5) * 80;
+  });
+
+  // Force simulation: grid-based repulsion, springs, and a pull toward each domain's anchor
+
+  let alpha = 1;
+  const CELL = 90;
+  const clamp = (value) => Math.max(-30, Math.min(30, value));
+
+  const tick = () => {
+    const grid = new Map();
+    nodes.forEach((node) => {
+      const key = Math.floor(node.x / CELL) + ',' + Math.floor(node.y / CELL);
+      if (!grid.has(key)) grid.set(key, []);
+      grid.get(key).push(node);
+    });
+
+    nodes.forEach((node) => {
+      const gx = Math.floor(node.x / CELL);
+      const gy = Math.floor(node.y / CELL);
+      for (let i = -1; i <= 1; i++) {
+        for (let j = -1; j <= 1; j++) {
+          (grid.get((gx + i) + ',' + (gy + j)) ?? []).forEach((other) => {
+            if (other === node) return;
+            let dx = node.x - other.x;
+            let dy = node.y - other.y;
+            let distance2 = dx * dx + dy * dy;
+            if (distance2 === 0) { dx = random() - 0.5; dy = random() - 0.5; distance2 = dx * dx + dy * dy; }
+            if (distance2 > CELL * CELL) return;
+            const force = (300 * alpha) / Math.max(distance2, 16);
+            node.vx += dx * force;
+            node.vy += dy * force;
+          });
+        }
+      }
+    });
+
+    links.forEach((link) => {
+      const sameDomain = link.source.domain !== null && link.source.domain === link.target.domain;
+      const dx = link.target.x - link.source.x;
+      const dy = link.target.y - link.source.y;
+      const distance = Math.sqrt(dx * dx + dy * dy) || 1;
+      const strength = (((distance - (sameDomain ? 40 : 120)) / distance) * (sameDomain ? 0.06 : 0.012)) * alpha;
+      link.source.vx += dx * strength;
+      link.source.vy += dy * strength;
+      link.target.vx -= dx * strength;
+      link.target.vy -= dy * strength;
+    });
+
+    nodes.forEach((node) => {
+      const center = centerOf(node.domain);
+      const pull = center ? 0.02 : 0.004;
+      node.vx += ((center?.x ?? 0) - node.x) * pull * alpha;
+      node.vy += ((center?.y ?? 0) - node.y) * pull * alpha;
+
+      if (node.fixed) { node.vx = 0; node.vy = 0; return; }
+      node.vx *= 0.6;
+      node.vy *= 0.6;
+      node.x += clamp(node.vx);
+      node.y += clamp(node.vy);
+    });
+
+    alpha *= 0.985;
+  };
+
+  // Rendering
+
+  const svg = document.getElementById('graph');
+  const viewport = document.getElementById('viewport');
+  const edgeEls = links.map((link) => {
+    const line = svgEl('line', { class: 'edge', 'stroke-width': (0.4 + link.weight * 0.25).toFixed(2) });
+    document.getElementById('edges').append(line);
+    return line;
+  });
+  const nodeEls = nodes.map((node) => {
+    const circle = svgEl('circle', { class: 'node', r: node.r.toFixed(1), fill: colorOf(node.domain) });
+    const title = svgEl('title');
+    title.textContent = `${node.name}\n${node.kind} · ${node.domain ?? 'unassigned'} · ${node.dependents} dependents`;
+    circle.append(title);
+    circle.addEventListener('mousedown', (event) => startDrag(event, node));
+    circle.addEventListener('click', (event) => { event.stopPropagation(); select(node); });
+    document.getElementById('nodes').append(circle);
+    return circle;
+  });
+  const labelEls = nodes.map((node) => {
+    const text = svgEl('text', { class: 'label', dx: (node.r + 3).toFixed(1), dy: '0.35em' });
+    text.textContent = shortName(node.name);
+    document.getElementById('labels').append(text);
+    return text;
+  });
+
+  const render = () => {
+    links.forEach((link, index) => {
+      const line = edgeEls[index];
+      line.setAttribute('x1', link.source.x.toFixed(1));
+      line.setAttribute('y1', link.source.y.toFixed(1));
+      line.setAttribute('x2', link.target.x.toFixed(1));
+      line.setAttribute('y2', link.target.y.toFixed(1));
+    });
+    nodes.forEach((node, index) => {
+      nodeEls[index].setAttribute('cx', node.x.toFixed(1));
+      nodeEls[index].setAttribute('cy', node.y.toFixed(1));
+      labelEls[index].setAttribute('x', node.x.toFixed(1));
+      labelEls[index].setAttribute('y', node.y.toFixed(1));
+    });
+  };
+
+  // Focus and labels
+
+  let focus = null;
+  let selected = null;
+  const showLabels = document.getElementById('show-labels');
+
+  const updateLabels = () => {
+    nodes.forEach((node, index) => {
+      const visible = showLabels.checked || hotspots.has(node) || (focus !== null && focus.has(node) && focus.size <= 40);
+      labelEls[index].style.display = visible && (focus === null || focus.has(node)) ? '' : 'none';
+    });
+  };
+
+  const applyFocus = (set) => {
+    focus = set;
+    nodes.forEach((node, index) => {
+      nodeEls[index].classList.toggle('dim', set !== null && !set.has(node));
+      nodeEls[index].classList.toggle('selected', node === selected);
+    });
+    links.forEach((link, index) => {
+      const touchesSelection = selected === null || link.source === selected || link.target === selected;
+      edgeEls[index].classList.toggle('dim', set !== null && !(set.has(link.source) && set.has(link.target) && touchesSelection));
+    });
+    updateLabels();
+  };
+
+  showLabels.addEventListener('change', updateLabels);
+
+  // Sidebar: legend and details
+
+  const legend = document.getElementById('legend');
+  const details = document.getElementById('details');
+  const legendItems = [];
+
+  const emptyDetails = () => details.replaceChildren(el('p', { class: 'muted' }, 'Click a class in the graph to see what it depends on and what depends on it.'));
+
+  const addLegendItem = (name, members, cohesion) => {
+    const item = el('div', { class: 'legend-item', role: 'button', tabindex: '0' });
+    const swatch = el('span', { class: 'swatch' });
+    swatch.style.background = colorOf(name === 'Unassigned' ? null : name);
+    const grow = el('div', { class: 'grow' });
+    grow.append(el('div', {}, name));
+    if (cohesion !== undefined) {
+      const bar = el('div', { class: 'bar', title: `${percent(cohesion)} cohesion` });
+      const fill = el('span');
+      fill.style.width = percent(cohesion);
+      bar.append(fill);
+      grow.append(bar);
+    }
+    item.append(swatch, grow, el('span', { class: 'count' }, String(members.length)));
+    const activate = () => {
+      const wasActive = item.classList.contains('active');
+      legendItems.forEach((other) => other.classList.remove('active'));
+      selected = null;
+      emptyDetails();
+      if (wasActive) { applyFocus(null); return; }
+      item.classList.add('active');
+      applyFocus(new Set(members.map((member) => byName.get(member)).filter(Boolean)));
+    };
+    item.addEventListener('click', activate);
+    item.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); activate(); } });
+    legend.append(item);
+    legendItems.push(item);
+  };
+
+  domains.forEach((domain) => addLegendItem(domain.name, domain.classes, domain.cohesion));
+  if (data.domains.shared.length) addLegendItem(SHARED, data.domains.shared);
+  if (data.domains.unassigned.length) addLegendItem('Unassigned', data.domains.unassigned);
+
+  const linkList = (title, entries, other) => {
+    if (!entries.length) return [];
+    const list = el('ul');
+    entries.sort((a, b) => b.weight - a.weight).forEach((link) => {
+      const item = el('li');
+      const anchor = el('a', { title: other(link).name }, shortName(other(link).name));
+      anchor.addEventListener('click', () => select(other(link)));
+      item.append(anchor, el('span', { class: 'muted' }, ' ' + link.types.join(', ')));
+      list.append(item);
+    });
+    return [el('h3', {}, `${title} (${entries.length})`), list];
+  };
+
+  const select = (node) => {
+    selected = node;
+    legendItems.forEach((item) => item.classList.remove('active'));
+    applyFocus(new Set([node, ...neighbours.get(node)]));
+
+    const facts = el('dl');
+    [
+      ['Class', node.name],
+      ['Kind', node.kind.replace('_', ' ')],
+      ['Domain', node.domain ?? 'unassigned'],
+      ['File', node.file],
+      ['Instability', node.instability.toFixed(2)],
+    ].forEach(([term, value]) => facts.append(el('dt', {}, term), el('dd', {}, value)));
+
+    details.replaceChildren(
+      el('h2', {}, shortName(node.name)),
+      facts,
+      ...linkList('Depends on', links.filter((link) => link.source === node), (link) => link.target),
+      ...linkList('Used by', links.filter((link) => link.target === node), (link) => link.source),
+    );
+  };
+
+  emptyDetails();
+
+  // Search
+
+  document.getElementById('search').addEventListener('input', (event) => {
+    const query = event.target.value.trim().toLowerCase();
+    selected = null;
+    legendItems.forEach((item) => item.classList.remove('active'));
+    applyFocus(query === '' ? null : new Set(nodes.filter((node) => node.name.toLowerCase().includes(query))));
+  });
+
+  // Zoom, pan and drag
+
+  let view = { x: 0, y: 0, k: 1 };
+  let interacted = false;
+  const applyView = () => viewport.setAttribute('transform', `translate(${view.x},${view.y}) scale(${view.k})`);
+  const toGraph = (event) => {
+    const rect = svg.getBoundingClientRect();
+    return { x: (event.clientX - rect.left - view.x) / view.k, y: (event.clientY - rect.top - view.y) / view.k };
+  };
+
+  const fit = () => {
+    if (!nodes.length) return;
+    const rect = svg.getBoundingClientRect();
+    const xs = nodes.map((node) => node.x);
+    const ys = nodes.map((node) => node.y);
+    const [minX, maxX, minY, maxY] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+    const k = Math.min(rect.width / (maxX - minX + 120), rect.height / (maxY - minY + 120), 2);
+    view = { k, x: rect.width / 2 - ((minX + maxX) / 2) * k, y: rect.height / 2 - ((minY + maxY) / 2) * k };
+    applyView();
+  };
+
+  svg.addEventListener('wheel', (event) => {
+    event.preventDefault();
+    interacted = true;
+    const rect = svg.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+    const k = Math.min(8, Math.max(0.1, view.k * Math.exp(-event.deltaY * 0.0015)));
+    view.x = mouseX - (mouseX - view.x) * (k / view.k);
+    view.y = mouseY - (mouseY - view.y) * (k / view.k);
+    view.k = k;
+    applyView();
+  }, { passive: false });
+
+  let pan = null;
+  let dragging = null;
+  let moved = false;
+
+  svg.addEventListener('mousedown', (event) => {
+    if (event.target.tagName === 'circle') return;
+    pan = { x: event.clientX - view.x, y: event.clientY - view.y };
+    moved = false;
+    svg.classList.add('panning');
+  });
+
+  const startDrag = (event, node) => {
+    event.stopPropagation();
+    dragging = node;
+    node.fixed = true;
+  };
+
+  window.addEventListener('mousemove', (event) => {
+    if (dragging) {
+      const point = toGraph(event);
+      dragging.x = point.x;
+      dragging.y = point.y;
+      interacted = true;
+      reheat(0.3);
+    } else if (pan) {
+      view.x = event.clientX - pan.x;
+      view.y = event.clientY - pan.y;
+      moved = true;
+      interacted = true;
+      applyView();
+    }
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (dragging) dragging.fixed = false;
+    dragging = null;
+    pan = null;
+    svg.classList.remove('panning');
+  });
+
+  svg.addEventListener('click', (event) => {
+    if (event.target.tagName === 'circle' || moved) return;
+    selected = null;
+    legendItems.forEach((item) => item.classList.remove('active'));
+    emptyDetails();
+    applyFocus(null);
+  });
+
+  document.getElementById('reset').addEventListener('click', () => { interacted = false; fit(); });
+
+  // Animation loop
+
+  let running = false;
+  const frame = () => {
+    tick();
+    tick();
+    render();
+    if (alpha > 0.01) { requestAnimationFrame(frame); return; }
+    running = false;
+    if (!interacted) fit();
+  };
+  const reheat = (value) => {
+    alpha = Math.max(alpha, value);
+    if (!running) { running = true; requestAnimationFrame(frame); }
+  };
+
+  for (let i = 0; i < 60; i++) tick();
+  render();
+  fit();
+  updateLabels();
+  reheat(alpha);
+
+  // Tables
+
+  const domainList = document.getElementById('domain-list');
+  const domainCard = (name, members, meta) => {
+    const card = el('div', { class: 'domain' });
+    const heading = el('h3');
+    const swatch = el('span', { class: 'swatch' });
+    swatch.style.background = colorOf(name === 'Unassigned' ? null : name);
+    heading.append(swatch, document.createTextNode(name));
+    const list = el('ul');
+    members.forEach((member) => {
+      const item = el('li');
+      item.append(el('code', { title: member }, shortName(member)));
+      list.append(item);
+    });
+    card.append(heading, el('div', { class: 'muted' }, meta), list);
+    domainList.append(card);
+  };
+
+  domains.forEach((domain) => domainCard(
+    domain.name,
+    domain.classes,
+    `${domain.classes.length} classes · ${percent(domain.cohesion)} cohesion${domain.pinned ? ' · from hints' : ''}`,
+  ));
+  if (data.domains.shared.length) domainCard(SHARED, data.domains.shared, 'Used across many domains. Candidates for a shared kernel or public contracts.');
+  if (data.domains.unassigned.length) domainCard('Unassigned', data.domains.unassigned, 'Not connected to other classes. Place these by hand.');
+
+  const table = (target, headers, rows) => {
+    const head = el('tr');
+    headers.forEach(([label, numeric]) => head.append(el('th', numeric ? { class: 'num' } : {}, label)));
+    target.append(head);
+    rows.forEach((row) => {
+      const tr = el('tr');
+      row.forEach((cell, index) => {
+        const td = el('td', headers[index][1] ? { class: 'num' } : {});
+        td.append(index === 0 ? el('code', {}, String(cell)) : document.createTextNode(String(cell)));
+        tr.append(td);
+      });
+      target.append(tr);
+    });
+  };
+
+  table(
+    document.getElementById('hotspots'),
+    [['Class'], ['Kind'], ['Domain'], ['Dependents', true], ['Dependencies', true], ['Instability', true]],
+    data.hotspots.map((name) => byName.get(name)).filter(Boolean).map((node) => [
+      node.name, node.kind.replace('_', ' '), node.domain ?? 'unassigned', node.dependents, node.dependencies, node.instability.toFixed(2),
+    ]),
+  );
+
+  if (data.skipped_files.length) {
+    document.getElementById('skipped-panel').hidden = false;
+    table(document.getElementById('skipped'), [['File'], ['Reason']], data.skipped_files.map((file) => [file.file, file.reason]));
+  }
+})();
+</script>
+</body>
+</html>

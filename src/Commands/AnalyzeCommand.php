@@ -11,36 +11,48 @@ use MertBag\DomainMigrator\Data\AnalysisOptions;
 use MertBag\DomainMigrator\Enums\ReportFormat;
 use MertBag\DomainMigrator\Exceptions\InvalidConfigurationException;
 use MertBag\DomainMigrator\Reporting\ConsoleReportRenderer;
-use MertBag\DomainMigrator\Reporting\JsonReportFormatter;
+use MertBag\DomainMigrator\Reporting\ReportWriter;
 use Symfony\Component\Console\Output\OutputInterface;
 
 final class AnalyzeCommand extends Command
 {
     /** @var string */
     protected $signature = 'domain:analyze
-        {--format=console : The report format (console, json)}
-        {--output= : Write the JSON report to this file instead of the terminal}';
+        {--format=console : The report format (console, json, html)}
+        {--output= : Write the report to this file (json defaults to the terminal, html to domain-report.html)}
+        {--map= : Also write the suggested domains to this file, e.g. domain-map.json}
+        {--force : Overwrite an existing domain map}';
 
     /** @var string */
-    protected $description = 'Analyze class dependencies and coupling hot spots in the application';
+    protected $description = 'Analyze class dependencies, coupling hot spots and candidate domains in the application';
 
     public function handle(
         AnalyzeApplicationAction $analyze,
         ConsoleReportRenderer $consoleRenderer,
-        JsonReportFormatter $jsonFormatter,
+        ReportWriter $writer,
         Filesystem $files,
     ): int {
         $format = ReportFormat::tryFrom($this->stringOption('format') ?? ReportFormat::Console->value);
-        $outputPath = $this->stringOption('output');
 
         if ($format === null) {
-            $this->components->error('Unsupported format. Use "console" or "json".');
+            $this->components->error('Unsupported format. Use "console", "json" or "html".');
 
             return self::FAILURE;
         }
 
-        if ($outputPath !== null && $format !== ReportFormat::Json) {
-            $this->components->error('The --output option requires --format=json.');
+        $outputPath = $this->stringOption('output');
+
+        if ($outputPath !== null && $format === ReportFormat::Console) {
+            $this->components->error('The --output option requires --format=json or --format=html.');
+
+            return self::FAILURE;
+        }
+
+        $outputPath ??= $format->defaultOutputPath();
+        $mapPath = $this->stringOption('map');
+
+        if ($mapPath !== null && $files->exists($mapPath) && ! $this->option('force')) {
+            $this->components->error("The domain map [{$mapPath}] already exists. Use --force to overwrite it.");
 
             return self::FAILURE;
         }
@@ -53,22 +65,24 @@ final class AnalyzeCommand extends Command
             return self::FAILURE;
         }
 
+        if ($mapPath !== null) {
+            $writer->writeDomainMap($report->domains, $mapPath);
+        }
+
         if ($format === ReportFormat::Console) {
             $consoleRenderer->render($report, $this->output, $this->components);
+        } elseif ($outputPath === null) {
+            $this->output->writeln($writer->render($report, $format), OutputInterface::OUTPUT_RAW);
 
             return self::SUCCESS;
+        } else {
+            $writer->write($report, $format, $outputPath);
+            $this->components->info("Report written to [{$outputPath}].");
         }
 
-        $json = $jsonFormatter->format($report);
-
-        if ($outputPath === null) {
-            $this->output->writeln($json, OutputInterface::OUTPUT_RAW);
-
-            return self::SUCCESS;
+        if ($mapPath !== null) {
+            $this->components->info("Domain map written to [{$mapPath}]. Review it and commit it to version control.");
         }
-
-        $files->put($outputPath, $json.PHP_EOL);
-        $this->components->info("Report written to [{$outputPath}].");
 
         return self::SUCCESS;
     }
