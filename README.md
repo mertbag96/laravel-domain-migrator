@@ -9,6 +9,10 @@ Move a growing Laravel MVC app toward a modular, domain-oriented structure — s
 
 > **Status:** pre-1.0. The analyzer is usable today; enforcement and migration are on the roadmap, and the API may still change between minor versions.
 
+![HTML report for Snipe-IT: 720 classes grouped into 13 suggested domains and a shared kernel](https://raw.githubusercontent.com/mertbag96/laravel-domain-migrator/main/art/html-report.png)
+
+<sub>The HTML report for [Snipe-IT](https://github.com/grokability/snipe-it), generated in about a second.</sub>
+
 ## What it does
 
 The package works in three phases:
