@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-10-18
+
+Boundary checks run in your Pest suite, from the same domain map as `domain:check` and PHPStan.
+
 ### Added
 
 - Pest arch preset: `arch()->preset()->domains()` fails on the same boundary violations as `domain:check` and shows the same report. It is registered automatically on Pest 3 and newer, honors `domain-baseline.json`, and reads `config/domain-migrator.php` when the application is not booted.
@@ -77,7 +81,8 @@ First public release.
 - Coupling metrics per class (dependents, dependencies, instability) and a ranked list of hot spots.
 - Unparsable files are reported instead of aborting the analysis.
 
-[Unreleased]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.2.0...v0.2.1
