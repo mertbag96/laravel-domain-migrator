@@ -35,6 +35,39 @@ Optionally publish the config file:
 php artisan vendor:publish --tag=domain-migrator-config
 ```
 
+## Usage
+
+### Analyze your application
+
+```bash
+php artisan domain:analyze
+```
+
+The analyzer parses every PHP file in the configured paths (default: `app/`) without running any of your code, and prints:
+
+- the number of classes per Laravel role (models, controllers, actions, jobs, ...),
+- the coupling hot spots: classes with the most dependents, which are the hardest to move into a domain,
+- files that could not be parsed.
+
+For the full dependency graph, use the JSON format:
+
+```bash
+php artisan domain:analyze --format=json
+php artisan domain:analyze --format=json --output=domain-analysis.json
+```
+
+Each dependency between two of your classes carries the kinds of links found and a weight, taken from the strongest link:
+
+| Link | Example | Default weight |
+|---|---|---|
+| `relationship` | `$this->hasMany(Order::class)` | 5 |
+| `inheritance` | `extends`, `implements`, `use SomeTrait` | 4 |
+| `framework_binding` | `#[ObservedBy(...)]`, a listener's `handle(OrderPlaced $event)` | 3 |
+| `usage` | type-hints, `new`, static calls, `::class`, `instanceof`, `catch` | 2 |
+| `import` | a `use` statement only | 1 |
+
+References to framework and vendor classes are left out, so the graph only shows how your own classes depend on each other. The weights can be changed in the config file.
+
 ## Roadmap
 
 | Version | Scope |

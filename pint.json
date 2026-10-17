@@ -1,5 +1,8 @@
 {
   "preset": "laravel",
+  "exclude": [
+    "tests/Fixtures"
+  ],
   "rules": {
     "declare_strict_types": true,
     "final_class": true
