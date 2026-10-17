@@ -98,9 +98,10 @@ References to framework and vendor classes are left out, so the graph only shows
 
 Classes are grouped with the [Louvain community detection algorithm](https://arxiv.org/abs/0803.0476): classes that depend heavily on each other end up in the same domain. The result is deterministic, so running the analyzer twice on the same code gives the same domains.
 
-- **Shared kernel:** a class used by at least three other domains (for example `User`) is listed as shared instead of being forced into one domain.
+- **Base types:** inheritance from a class that many classes extend (a base `Controller`, `Request` or model, a common trait) is ignored while grouping, so it does not pull unrelated features together. Hierarchies that live inside one feature namespace, such as `App\Models\Labels\Label` and its subclasses, stay together.
+- **Shared kernel:** a class used by at least three other domains (for example a base controller, a helper or a repository) is listed as shared instead of being forced into one domain. Eloquent models always stay in a domain, because they are what domains are built around.
 - **Unassigned:** classes without any dependency on other classes are listed separately so you can place them by hand.
-- **Names:** each domain is named after its most connected model, for example `Orders`. Rename domains in the domain map, or pin them with hints.
+- **Names:** each domain is named after a feature namespace nearly all of its classes share (`Labels`), or else its most connected model (`Orders`). Rename domains in the domain map, or pin them with hints.
 - **Cohesion:** the share of a domain's dependency weight that stays inside it. Higher is better.
 
 ### Configuration
@@ -109,7 +110,7 @@ Classes are grouped with the [Louvain community detection algorithm](https://arx
 // config/domain-migrator.php
 
 'paths' => ['app'],
-'exclude' => ['app/Providers/*'],
+'exclude' => ['app/Providers/*', 'app/Http/Kernel.php', 'app/Console/Kernel.php'],
 
 // Pin classes to a named domain. Classes pinned to different domains are never merged.
 'hints' => [
@@ -119,6 +120,7 @@ Classes are grouped with the [Louvain community detection algorithm](https://arx
 'clustering' => [
     'resolution' => 1.0,        // raise for more, smaller domains
     'shared_min_domains' => 3,  // how many other domains must use a class before it counts as shared
+    'base_type_threshold' => 5, // how many subclasses make a class a base type whose inheritance is ignored
 ],
 
 'weights' => [

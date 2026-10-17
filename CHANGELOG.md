@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-17
+
+Clustering fixes found by running the analyzer on [Koel](https://github.com/koel/koel) and [Snipe-IT](https://github.com/grokability/snipe-it).
+
+### Added
+
+- `clustering.base_type_threshold` option: inheritance from classes with at least this many subclasses is ignored while grouping.
+- Repository, query builder, validation rule and cast roles.
+
+### Changed
+
+- Domains are detected in two passes: shared classes are found first and then left out, so they no longer glue domains together.
+- Eloquent models always stay in a domain and are never moved to the shared kernel.
+- Base classes and traits that many classes extend no longer pull unrelated features into one domain. Hierarchies inside one feature namespace still stay together.
+- Domains are named after a feature namespace nearly all of their classes share before falling back to models. Pivot models are not used as names, and names that only differ in plural form (`User` and `Users`) are not suggested twice.
+- `app/Http/Kernel.php` and `app/Console/Kernel.php` are excluded by default, like service providers.
+- The console lists the shared kernel as a count and its eight most used classes, with full names when short names collide.
+- The HTML report generates a distinct color for every domain and spaces domains further apart.
+
+### Fixed
+
+- Classes in a `Models` namespace that do not extend Eloquent (label templates, builders, traits) are no longer reported as models.
+
 ## [0.2.0] - 2026-10-17
 
 First public release.
@@ -25,5 +48,6 @@ First public release.
 - Coupling metrics per class (dependents, dependencies, instability) and a ranked list of hot spots.
 - Unparsable files are reported instead of aborting the analysis.
 
-[Unreleased]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/mertbag96/laravel-domain-migrator/releases/tag/v0.2.0
