@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use MertBag\DomainMigrator\Actions\AnalyzeApplicationAction;
+use MertBag\DomainMigrator\Actions\ScanApplicationAction;
 use MertBag\DomainMigrator\Analysis\Clustering\DomainDetector;
 use MertBag\DomainMigrator\Analysis\Graph\GraphBuilder;
 use MertBag\DomainMigrator\Analysis\Metrics\MetricsCalculator;
@@ -17,9 +18,7 @@ use MertBag\DomainMigrator\Exceptions\InvalidConfigurationException;
 function analyze(AnalysisOptions $options): AnalysisReport
 {
     return (new AnalyzeApplicationAction(
-        new SourceFileFinder,
-        new ClassScanner,
-        new GraphBuilder,
+        new ScanApplicationAction(new SourceFileFinder, new ClassScanner, new GraphBuilder),
         new MetricsCalculator,
         new DomainDetector,
     ))->execute($options);

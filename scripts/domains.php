@@ -9,6 +9,7 @@ declare(strict_types=1);
  */
 
 use MertBag\DomainMigrator\Actions\AnalyzeApplicationAction;
+use MertBag\DomainMigrator\Actions\ScanApplicationAction;
 use MertBag\DomainMigrator\Analysis\Clustering\DomainDetector;
 use MertBag\DomainMigrator\Analysis\Graph\GraphBuilder;
 use MertBag\DomainMigrator\Analysis\Metrics\MetricsCalculator;
@@ -37,9 +38,7 @@ foreach (array_slice($argv, 2) as $argument) {
 $started = microtime(true);
 
 $report = (new AnalyzeApplicationAction(
-    new SourceFileFinder,
-    new ClassScanner,
-    new GraphBuilder,
+    new ScanApplicationAction(new SourceFileFinder, new ClassScanner, new GraphBuilder),
     new MetricsCalculator,
     new DomainDetector,
 ))->execute(AnalysisOptions::fromConfig(require __DIR__.'/../config/domain-migrator.php', realpath($basePath) ?: $basePath));

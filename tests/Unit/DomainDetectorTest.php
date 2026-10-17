@@ -5,41 +5,8 @@ declare(strict_types=1);
 use Illuminate\Support\Str;
 use MertBag\DomainMigrator\Analysis\Clustering\DomainDetector;
 use MertBag\DomainMigrator\Analysis\Graph\DependencyGraph;
-use MertBag\DomainMigrator\Analysis\Graph\GraphBuilder;
 use MertBag\DomainMigrator\Data\ClusteringOptions;
-use MertBag\DomainMigrator\Data\DependencyWeights;
 use MertBag\DomainMigrator\Data\DomainMap;
-use MertBag\DomainMigrator\Data\ScannedClass;
-use MertBag\DomainMigrator\Enums\DeclarationType;
-use MertBag\DomainMigrator\Enums\DependencyType;
-
-/**
- * Classes in a Models namespace extend Eloquent; any other class extends the parent given in $parents.
- *
- * @param  array<string, list<string>>  $dependencies  Class => classes it depends on.
- * @param  array<string, string>  $parents  Class => internal parent class.
- */
-function graphOf(array $dependencies, array $parents = []): DependencyGraph
-{
-    $names = array_unique([...array_keys($dependencies), ...array_merge([], ...array_values($dependencies)), ...array_keys($parents), ...array_values($parents)]);
-
-    return (new GraphBuilder)->build(array_values(array_map(function (string $name) use ($dependencies, $parents): ScannedClass {
-        $parent = $parents[$name] ?? (str_contains($name, '\\Models\\') ? 'Illuminate\Database\Eloquent\Model' : null);
-        $types = array_fill_keys($dependencies[$name] ?? [], [DependencyType::Relationship]);
-
-        if (isset($parents[$name])) {
-            $types[$parents[$name]] = [DependencyType::Inheritance];
-        }
-
-        return new ScannedClass(
-            name: $name,
-            declaration: DeclarationType::Class_,
-            file: $name.'.php',
-            parent: $parent,
-            dependencies: $types,
-        );
-    }, $names)), new DependencyWeights);
-}
 
 function cluster(string $prefix): array
 {
