@@ -1,0 +1,71 @@
+{
+    "name": "mertbag96/laravel-domain-migrator",
+    "description": "Analyze, migrate and enforce domain boundaries in Laravel MVC apps.",
+    "keywords": [
+        "laravel",
+        "ddd",
+        "domain-driven-design",
+        "modular",
+        "architecture",
+        "refactoring",
+        "static-analysis"
+    ],
+    "homepage": "https://github.com/mertbag96/laravel-domain-migrator",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Mert Bağ",
+            "email": "bagmert1996@gmail.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "illuminate/console": "^12.0 || ^13.0",
+        "illuminate/contracts": "^12.0 || ^13.0",
+        "illuminate/support": "^12.0 || ^13.0",
+        "nikic/php-parser": "^5.0",
+        "spatie/laravel-package-tools": "^1.16"
+    },
+    "autoload": {
+        "psr-4": {
+            "MertBag\\DomainMigrator\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "MertBag\\DomainMigrator\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/pest",
+        "test-coverage": "vendor/bin/pest --coverage",
+        "analyse": "vendor/bin/phpstan analyse --memory-limit=1G",
+        "format": "vendor/bin/pint"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "phpstan/extension-installer": true
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "MertBag\\DomainMigrator\\DomainMigratorServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "require-dev": {
+        "larastan/larastan": "^3.0",
+        "laravel/pint": "^1.20",
+        "orchestra/testbench": "^10.0 || ^11.0",
+        "pestphp/pest": "^4.0",
+        "pestphp/pest-plugin-arch": "^4.0",
+        "pestphp/pest-plugin-laravel": "^4.0",
+        "phpstan/extension-installer": "^1.4"
+    }
+}
