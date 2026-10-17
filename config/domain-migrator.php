@@ -36,12 +36,15 @@ return [
     |--------------------------------------------------------------------------
     |
     | Glob patterns (relative to the application base path) that are skipped
-    | while scanning.
+    | while scanning. Service providers and kernels only wire the framework
+    | together, so they would otherwise link unrelated classes.
     |
     */
 
     'exclude' => [
         'app/Providers/*',
+        'app/Http/Kernel.php',
+        'app/Console/Kernel.php',
     ],
 
     /*
@@ -78,14 +81,21 @@ return [
     |--------------------------------------------------------------------------
     |
     | "resolution" tunes domain size: raise it for more, smaller domains.
-    | A class used by at least "shared_min_domains" other domains is moved
-    | to the shared kernel instead of being forced into a single domain.
+    |
+    | A non-model class used by at least "shared_min_domains" other domains
+    | is moved to the shared kernel instead of being forced into a single
+    | domain. Models always stay in a domain.
+    |
+    | A parent class, interface or trait with at least "base_type_threshold"
+    | children (like a base Controller) is treated as a technical layer:
+    | extending it does not pull classes into the same domain.
     |
     */
 
     'clustering' => [
         'resolution' => 1.0,
         'shared_min_domains' => 3,
+        'base_type_threshold' => 5,
     ],
 
     /*

@@ -11,12 +11,15 @@ final readonly class ClusteringOptions
     /**
      * @param  array<string, list<string>>  $hints  Seed classes keyed by domain name.
      * @param  float  $resolution  Higher values produce more, smaller domains.
-     * @param  int  $sharedMinDomains  A class used by at least this many other domains is treated as shared.
+     * @param  int  $sharedMinDomains  A non-model class used by at least this many other domains is treated as shared.
+     * @param  int  $baseTypeThreshold  A parent class, interface or trait with at least this many children is a
+     *                                  technical base type; inheriting from it does not pull classes into one domain.
      */
     public function __construct(
         public array $hints = [],
         public float $resolution = 1.0,
         public int $sharedMinDomains = 3,
+        public int $baseTypeThreshold = 5,
     ) {}
 
     /**
@@ -42,10 +45,17 @@ final readonly class ClusteringOptions
             throw InvalidConfigurationException::invalidValue('clustering.shared_min_domains', 'an integer of at least 2');
         }
 
+        $baseTypeThreshold = $clustering['base_type_threshold'] ?? 5;
+
+        if (! is_int($baseTypeThreshold) || $baseTypeThreshold < 2) {
+            throw InvalidConfigurationException::invalidValue('clustering.base_type_threshold', 'an integer of at least 2');
+        }
+
         return new self(
             hints: self::hints($config['hints'] ?? []),
             resolution: (float) $resolution,
             sharedMinDomains: $sharedMinDomains,
+            baseTypeThreshold: $baseTypeThreshold,
         );
     }
 

@@ -7,34 +7,55 @@ namespace MertBag\DomainMigrator\Analysis\Clustering;
 use Illuminate\Support\Str;
 use MertBag\DomainMigrator\Analysis\Graph\DependencyGraph;
 use MertBag\DomainMigrator\Data\ClusteringOptions;
+use MertBag\DomainMigrator\Data\DependencyWeights;
 use MertBag\DomainMigrator\Data\Domain;
 use MertBag\DomainMigrator\Data\DomainMap;
 use MertBag\DomainMigrator\Enums\ClassKind;
+use MertBag\DomainMigrator\Enums\DependencyType;
 
 /**
- * Suggests domains by clustering the dependency graph, then moves classes
- * used by many other domains into the shared kernel instead of forcing
- * them into a single domain.
+ * Suggests domains by clustering the dependency graph in two passes.
+ *
+ * Inheriting from a widely used base type (a base controller, form request or
+ * trait) says which layer a class belongs to, not which domain, so those links
+ * are ignored. The first pass then finds non-model classes used across many
+ * clusters; they form the shared kernel and are left out of the second pass so
+ * they cannot glue domains together.
  */
 final readonly class DomainDetector
 {
     private const array NAME_SUFFIXES = [
-        'Controller', 'Action', 'Service', 'Job', 'Event', 'Listener', 'Policy', 'Observer',
-        'Request', 'Resource', 'Response', 'Notification', 'Exception', 'Command', 'Data',
+        'Controller', 'Action', 'Service', 'Repository', 'Job', 'Event', 'Listener', 'Policy', 'Observer',
+        'Request', 'Resource', 'Response', 'Notification', 'Exception', 'Command', 'Builder', 'Data',
     ];
 
-    public function detect(DependencyGraph $graph, ClusteringOptions $options): DomainMap
-    {
-        $hints = $this->hintedClasses($graph, $options);
-        $fullAdjacency = $this->undirectedAdjacency($graph);
-        $partition = (new Louvain($options->resolution))->partition($fullAdjacency, $hints);
+    private const array TECHNICAL_SEGMENTS = [
+        'Actions', 'Admin', 'Api', 'Builders', 'Casts', 'Commands', 'Components', 'Concerns', 'Console',
+        'Contracts', 'Controllers', 'Data', 'Domain', 'Enums', 'Events', 'Exceptions', 'Facades', 'Filament',
+        'Helpers', 'Http', 'Interfaces', 'Jobs', 'Listeners', 'Livewire', 'Mail', 'Middleware', 'Models',
+        'Notifications', 'Observers', 'Policies', 'Presenters', 'Providers', 'Repositories', 'Requests', 'Resources',
+        'Responses', 'Rules', 'Services', 'Support', 'Traits', 'Transformers', 'V1', 'V2', 'V3', 'Values', 'View',
+    ];
 
-        $shared = $this->sharedClasses($graph, $partition, $hints, $options->sharedMinDomains);
-        $adjacency = $this->withoutNodes($fullAdjacency, $shared);
+    private const float NAMESPACE_NAME_MIN_SHARE = 0.4;
+
+    private const float NAMESPACE_NAME_PREFERRED_SHARE = 0.6;
+
+    public function detect(
+        DependencyGraph $graph,
+        ClusteringOptions $options,
+        DependencyWeights $weights = new DependencyWeights,
+    ): DomainMap {
+        $hints = $this->hintedClasses($graph, $options);
+        $adjacency = $this->clusteringAdjacency($graph, $options, $weights);
+        $louvain = new Louvain($options->resolution);
+
+        $shared = $this->sharedClasses($graph, $louvain->partition($adjacency, $hints), $hints, $options->sharedMinDomains);
+        $adjacency = $this->withoutNodes($adjacency, $shared);
 
         $communities = [];
 
-        foreach (array_diff_key($partition, array_flip($shared)) as $class => $community) {
+        foreach ($louvain->partition($adjacency, $hints) as $class => $community) {
             $communities[$community][] = $class;
         }
 
@@ -42,7 +63,7 @@ final readonly class DomainDetector
 
         $domains = [];
         $unassigned = [];
-        $usedNames = array_fill_keys(array_keys($options->hints), true);
+        $usedNames = array_fill_keys(array_map($this->nameKey(...), array_keys($options->hints)), true);
 
         foreach ($communities as $members) {
             $label = $this->hintLabel($members, $hints);
@@ -54,7 +75,7 @@ final readonly class DomainDetector
             }
 
             $domains[] = new Domain(
-                name: $label ?? $this->suggestName($graph, $fullAdjacency, $members, $usedNames),
+                name: $label ?? $this->suggestName($graph, $adjacency, $members, $usedNames),
                 classes: $members,
                 cohesion: $this->cohesion($adjacency, $members),
                 pinned: $label !== null,
@@ -85,18 +106,74 @@ final readonly class DomainDetector
     }
 
     /**
+     * Undirected weights between classes, without links that only express
+     * inheritance from a technical base type.
+     *
      * @return array<string, array<string, float>>
      */
-    private function undirectedAdjacency(DependencyGraph $graph): array
+    private function clusteringAdjacency(DependencyGraph $graph, ClusteringOptions $options, DependencyWeights $weights): array
     {
+        $children = [];
+
+        foreach ($graph->edges as $edge) {
+            if (in_array(DependencyType::Inheritance, $edge->types, true)) {
+                $children[$edge->target][] = $edge->source;
+            }
+        }
+
+        $baseTypes = [];
+
+        foreach ($children as $parent => $inheritors) {
+            if (count($inheritors) >= $options->baseTypeThreshold && ! $this->isFeatureHierarchy($parent, $inheritors)) {
+                $baseTypes[$parent] = true;
+            }
+        }
+
         $adjacency = array_fill_keys(array_keys($graph->nodes), []);
 
         foreach ($graph->edges as $edge) {
-            $adjacency[$edge->source][$edge->target] = ($adjacency[$edge->source][$edge->target] ?? 0.0) + $edge->weight;
-            $adjacency[$edge->target][$edge->source] = ($adjacency[$edge->target][$edge->source] ?? 0.0) + $edge->weight;
+            $types = $edge->types;
+
+            if (isset($baseTypes[$edge->target])) {
+                $types = array_filter($types, fn (DependencyType $type): bool => $type !== DependencyType::Inheritance && $type !== DependencyType::Import);
+            }
+
+            $weight = array_reduce($types, fn (int $carry, DependencyType $type): int => max($carry, $weights->of($type)), 0);
+
+            if ($weight === 0) {
+                continue;
+            }
+
+            $adjacency[$edge->source][$edge->target] = ($adjacency[$edge->source][$edge->target] ?? 0.0) + $weight;
+            $adjacency[$edge->target][$edge->source] = ($adjacency[$edge->target][$edge->source] ?? 0.0) + $weight;
         }
 
         return $adjacency;
+    }
+
+    /**
+     * A hierarchy such as App\Models\Labels\Label with all of its subclasses under
+     * App\Models\Labels describes one feature, unlike a base controller or trait
+     * that every layer extends.
+     *
+     * @param  list<string>  $inheritors
+     */
+    private function isFeatureHierarchy(string $parent, array $inheritors): bool
+    {
+        $namespace = substr($parent, 0, (int) strrpos($parent, '\\'));
+        $segments = array_slice(explode('\\', $namespace), 1);
+
+        if (array_diff($segments, self::TECHNICAL_SEGMENTS) === []) {
+            return false;
+        }
+
+        foreach ($inheritors as $inheritor) {
+            if (! str_starts_with($inheritor, $namespace.'\\')) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -109,7 +186,7 @@ final readonly class DomainDetector
         $shared = [];
 
         foreach ($partition as $class => $community) {
-            if (isset($hints[$class])) {
+            if (isset($hints[$class]) || $graph->nodes[$class]->kind === ClassKind::Model) {
                 continue;
             }
 
@@ -160,9 +237,10 @@ final readonly class DomainDetector
     }
 
     /**
-     * Names the domain after, in order of preference: its most connected model,
-     * the model it depends on most, or its most connected class. Names already
-     * taken by larger domains are skipped.
+     * Names the domain after, in order of preference: a namespace nearly all of
+     * its classes share, its most connected model, a namespace many of its classes
+     * share, the model it depends on most, or its most connected class. Names
+     * already taken by larger domains are skipped.
      *
      * @param  array<string, array<string, float>>  $adjacency
      * @param  list<string>  $members
@@ -170,7 +248,7 @@ final readonly class DomainDetector
      */
     private function suggestName(DependencyGraph $graph, array $adjacency, array $members, array &$usedNames): string
     {
-        $isModel = fn (string $class): bool => $graph->nodes[$class]->kind === ClassKind::Model;
+        $isModel = fn (string $class): bool => $graph->nodes[$class]->kind === ClassKind::Model && ! str_ends_with($class, 'Pivot');
         $inside = array_flip($members);
         $weights = [];
         $neighbours = [];
@@ -185,18 +263,54 @@ final readonly class DomainDetector
             }
         }
 
-        $candidates = [
-            ...$this->rankByWeight(array_filter($members, $isModel), $weights),
-            ...$this->rankByWeight(array_filter(array_unique($neighbours), $isModel), $weights),
-            ...$this->rankByWeight($members, $weights),
+        $names = [
+            ...$this->namespaceNames($members, self::NAMESPACE_NAME_PREFERRED_SHARE),
+            ...array_map($this->nameFor(...), $this->rankByWeight(array_filter($members, $isModel), $weights)),
+            ...$this->namespaceNames($members, self::NAMESPACE_NAME_MIN_SHARE),
+            ...array_map($this->nameFor(...), $this->rankByWeight(array_filter(array_unique($neighbours), $isModel), $weights)),
+            ...array_map($this->nameFor(...), $this->rankByWeight($members, $weights)),
         ];
 
-        $names = array_map($this->nameFor(...), $candidates);
-        $name = current(array_filter($names, fn (string $name): bool => ! isset($usedNames[$name]))) ?: $this->numbered($names[0], $usedNames);
+        $name = current(array_filter($names, fn (string $name): bool => ! isset($usedNames[$this->nameKey($name)])))
+            ?: $this->numbered($names[0], $usedNames);
 
-        $usedNames[$name] = true;
+        $usedNames[$this->nameKey($name)] = true;
 
         return $name;
+    }
+
+    /**
+     * "User" and "Users" would read as the same domain, so names are compared in plural, lowercase form.
+     */
+    private function nameKey(string $name): string
+    {
+        return Str::lower(Str::plural($name));
+    }
+
+    /**
+     * Non-technical namespace segments shared by a large part of the domain, most common first.
+     *
+     * @param  list<string>  $members
+     * @return list<string>
+     */
+    private function namespaceNames(array $members, float $minShare): array
+    {
+        $counts = [];
+
+        foreach ($members as $member) {
+            $segments = array_slice(explode('\\', $member), 1, -1);
+
+            foreach (array_unique($segments) as $segment) {
+                if (! in_array($segment, self::TECHNICAL_SEGMENTS, true)) {
+                    $counts[$segment] = ($counts[$segment] ?? 0) + 1;
+                }
+            }
+        }
+
+        $counts = array_filter($counts, fn (int $count): bool => $count >= count($members) * $minShare);
+        arsort($counts);
+
+        return array_map(fn (int|string $segment): string => Str::studly((string) $segment), array_keys($counts));
     }
 
     /**
@@ -233,7 +347,7 @@ final readonly class DomainDetector
     {
         $suffix = 2;
 
-        while (isset($usedNames[$name.$suffix])) {
+        while (isset($usedNames[$this->nameKey($name.$suffix)])) {
             $suffix++;
         }
 

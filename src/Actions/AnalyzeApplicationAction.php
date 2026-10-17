@@ -48,7 +48,7 @@ final readonly class AnalyzeApplicationAction
             metrics: $this->metricsCalculator->calculate($graph),
             skippedFiles: $skippedFiles,
             hotspotLimit: $options->hotspotLimit,
-            domains: $this->domainDetector->detect($graph, $options->clustering),
+            domains: $this->domainDetector->detect($graph, $options->clustering, $options->weights),
         );
     }
 }

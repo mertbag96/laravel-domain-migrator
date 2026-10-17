@@ -81,7 +81,9 @@ it('limits the number of hot spots', function (): void {
 it('suggests domains for the application', function (): void {
     $domains = analyze(fixtureOptions())->domains;
 
-    expect($domains->shared)->toBe(['App\Models\Order'])
+    expect($domains->shared)->toBe([])
+        ->and($domains->domainOf('App\Models\Order'))->toBe('Users')
+        ->and($domains->domainOf('App\Http\Controllers\OrderController'))->toBe('Orders')
         ->and($domains->domainOf('App\Models\OrderItem'))->toBe($domains->domainOf('App\Models\Product'))
         ->and($domains->domainOf('App\Jobs\GenerateInvoice'))->toBe($domains->domainOf('App\Listeners\QueueInvoiceGeneration'));
 });

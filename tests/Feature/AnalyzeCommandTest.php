@@ -64,14 +64,13 @@ it('requires a file format when writing to a file', function (): void {
         ->assertFailed();
 });
 
-it('lists the suggested domains and the shared kernel in the console', function (): void {
+it('lists the suggested domains in the console', function (): void {
     $this->artisan('domain:analyze')
         ->expectsOutputToContain('Suggested domains')
         ->expectsOutputToContain('OrderItems')
-        ->expectsOutputToContain('Shared')
+        ->doesntExpectOutputToContain('Shared')
         ->assertSuccessful();
 });
-
 it('writes a self-contained html report', function (): void {
     $path = sys_get_temp_dir().'/domain-migrator-report.html';
 
@@ -101,7 +100,7 @@ it('writes the domain map next to the report', function (): void {
     $map = json_decode((string) file_get_contents($path), true);
 
     expect($map['schema'])->toBe(1)
-        ->and($map['shared'])->toBe(['App\Models\Order'])
+        ->and($map['shared'])->toBe([])
         ->and(array_column($map['domains'], 'name'))->toContain('OrderItems');
 
     unlink($path);

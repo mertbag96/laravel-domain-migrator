@@ -26,12 +26,13 @@ it('builds clustering options from the config array', function (): void {
     $options = AnalysisOptions::fromConfig([
         'paths' => ['app'],
         'hints' => ['Billing' => ['\App\Models\Invoice', 'App\Models\Payment']],
-        'clustering' => ['resolution' => 2, 'shared_min_domains' => 4],
+        'clustering' => ['resolution' => 2, 'shared_min_domains' => 4, 'base_type_threshold' => 8],
     ], '/default');
 
     expect($options->clustering->hints)->toBe(['Billing' => ['App\Models\Invoice', 'App\Models\Payment']])
         ->and($options->clustering->resolution)->toBe(2.0)
-        ->and($options->clustering->sharedMinDomains)->toBe(4);
+        ->and($options->clustering->sharedMinDomains)->toBe(4)
+        ->and($options->clustering->baseTypeThreshold)->toBe(8);
 });
 
 it('falls back to the application base path', function (): void {
@@ -51,4 +52,5 @@ it('rejects invalid config values', function (array $config, string $message): v
     'hint class as array' => [['hints' => ['Billing' => [[]]]], 'domain-migrator.hints.Billing'],
     'zero resolution' => [['clustering' => ['resolution' => 0]], 'domain-migrator.clustering.resolution'],
     'one shared domain' => [['clustering' => ['shared_min_domains' => 1]], 'domain-migrator.clustering.shared_min_domains'],
+    'one base type child' => [['clustering' => ['base_type_threshold' => 1]], 'domain-migrator.clustering.base_type_threshold'],
 ]);
