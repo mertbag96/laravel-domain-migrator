@@ -1,0 +1,19 @@
+parameters:
+    domainMigrator:
+        map: %currentWorkingDirectory%/domain-map.json
+        baseline: %currentWorkingDirectory%/domain-baseline.json
+
+parametersSchema:
+    domainMigrator: structure([
+        map: string()
+        baseline: schema(string(), nullable())
+    ])
+
+services:
+    -
+        class: MertBag\DomainMigrator\PHPStan\DomainBoundaryRule
+        arguments:
+            mapPath: %domainMigrator.map%
+            baselinePath: %domainMigrator.baseline%
+        tags:
+            - phpstan.rules.rule

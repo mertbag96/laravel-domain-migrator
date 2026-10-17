@@ -34,6 +34,11 @@ arch('the analysis core does not depend on the console layer')
     ->expect('MertBag\DomainMigrator\Analysis')
     ->not->toUse(['MertBag\DomainMigrator\Commands', 'MertBag\DomainMigrator\Reporting', 'MertBag\DomainMigrator\Boundaries', 'Illuminate\Console']);
 
+arch('only the PHPStan integration depends on PHPStan, which is optional')
+    ->expect('MertBag\DomainMigrator')
+    ->not->toUse('PHPStan')
+    ->ignoring('MertBag\DomainMigrator\PHPStan');
+
 arch('boundary checks do not depend on the console layer or on clustering')
     ->expect('MertBag\DomainMigrator\Boundaries')
     ->not->toUse(['MertBag\DomainMigrator\Commands', 'MertBag\DomainMigrator\Reporting', 'MertBag\DomainMigrator\Analysis\Clustering', 'Illuminate\Console']);

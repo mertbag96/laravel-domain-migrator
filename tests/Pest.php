@@ -10,9 +10,11 @@ use MertBag\DomainMigrator\Data\ScannedClass;
 use MertBag\DomainMigrator\Data\SourceFile;
 use MertBag\DomainMigrator\Enums\DeclarationType;
 use MertBag\DomainMigrator\Enums\DependencyType;
+use MertBag\DomainMigrator\Tests\PHPStan\RuleTestCase;
 use MertBag\DomainMigrator\Tests\TestCase;
 
 pest()->extend(TestCase::class)->in('Feature');
+pest()->extend(RuleTestCase::class)->in('PHPStan');
 
 function fixturePath(string $path = ''): string
 {
