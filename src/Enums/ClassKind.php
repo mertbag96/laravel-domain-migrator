@@ -23,6 +23,10 @@ enum ClassKind: string
     case Provider = 'provider';
     case Action = 'action';
     case Service = 'service';
+    case Repository = 'repository';
+    case Builder = 'builder';
+    case Rule = 'rule';
+    case Cast = 'cast';
     case Data = 'data';
     case Enum = 'enum';
     case Exception = 'exception';

@@ -10,14 +10,17 @@ use MertBag\DomainMigrator\Enums\DeclarationType;
 
 /**
  * Determines the Laravel role of a class from, in order: its declaration type,
- * a known framework base class in its parent chain, its namespace and its name.
+ * a known framework base class in its parent chain, a known framework
+ * interface, its namespace and its name.
  */
 final class KindResolver
 {
     private const array BASE_CLASSES = [
         'Illuminate\\Database\\Eloquent\\Model' => ClassKind::Model,
         'Illuminate\\Database\\Eloquent\\Relations\\Pivot' => ClassKind::Model,
+        'Illuminate\\Database\\Eloquent\\Relations\\MorphPivot' => ClassKind::Model,
         'Illuminate\\Foundation\\Auth\\User' => ClassKind::Model,
+        'Illuminate\\Database\\Eloquent\\Builder' => ClassKind::Builder,
         'Illuminate\\Routing\\Controller' => ClassKind::Controller,
         'Illuminate\\Foundation\\Http\\FormRequest' => ClassKind::FormRequest,
         'Illuminate\\Http\\Resources\\Json\\JsonResource' => ClassKind::Resource,
@@ -39,6 +42,14 @@ final class KindResolver
         'Symfony\\Component\\HttpKernel\\Exception\\HttpException' => ClassKind::Exception,
     ];
 
+    private const array INTERFACES = [
+        'Illuminate\\Contracts\\Validation\\ValidationRule' => ClassKind::Rule,
+        'Illuminate\\Contracts\\Validation\\Rule' => ClassKind::Rule,
+        'Illuminate\\Contracts\\Validation\\InvokableRule' => ClassKind::Rule,
+        'Illuminate\\Contracts\\Database\\Eloquent\\CastsAttributes' => ClassKind::Cast,
+        'Illuminate\\Contracts\\Database\\Eloquent\\CastsInboundAttributes' => ClassKind::Cast,
+    ];
+
     private const array NAMESPACE_SEGMENTS = [
         'Http\\Controllers' => ClassKind::Controller,
         'Http\\Requests' => ClassKind::FormRequest,
@@ -46,7 +57,6 @@ final class KindResolver
         'Http\\Responses' => ClassKind::Response,
         'Http\\Middleware' => ClassKind::Middleware,
         'Console\\Commands' => ClassKind::Command,
-        'Models' => ClassKind::Model,
         'Jobs' => ClassKind::Job,
         'Events' => ClassKind::Event,
         'Listeners' => ClassKind::Listener,
@@ -57,6 +67,10 @@ final class KindResolver
         'Providers' => ClassKind::Provider,
         'Actions' => ClassKind::Action,
         'Services' => ClassKind::Service,
+        'Repositories' => ClassKind::Repository,
+        'Builders' => ClassKind::Builder,
+        'Rules' => ClassKind::Rule,
+        'Casts' => ClassKind::Cast,
         'Data' => ClassKind::Data,
         'DataTransferObjects' => ClassKind::Data,
         'Enums' => ClassKind::Enum,
@@ -79,6 +93,9 @@ final class KindResolver
         'Command' => ClassKind::Command,
         'Action' => ClassKind::Action,
         'Service' => ClassKind::Service,
+        'Repository' => ClassKind::Repository,
+        'Builder' => ClassKind::Builder,
+        'Cast' => ClassKind::Cast,
         'Data' => ClassKind::Data,
         'Dto' => ClassKind::Data,
         'Exception' => ClassKind::Exception,
@@ -115,6 +132,8 @@ final class KindResolver
             DeclarationType::Trait => ClassKind::Trait,
             DeclarationType::Enum => ClassKind::Enum,
             DeclarationType::Class_ => $this->kindFromParent($class, $visited)
+                ?? $this->kindFromInterfaces($class)
+                ?? $this->kindFromModelsNamespace($class)
                 ?? $this->kindFromNamespace($class->name)
                 ?? $this->kindFromSuffix($class->name)
                 ?? ClassKind::Other,
@@ -145,9 +164,48 @@ final class KindResolver
         return $kind === ClassKind::Other ? null : $kind;
     }
 
+    private function kindFromInterfaces(ScannedClass $class): ?ClassKind
+    {
+        foreach ($class->interfaces as $interface) {
+            if (isset(self::INTERFACES[$interface])) {
+                return self::INTERFACES[$interface];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Classes in a Models namespace count as models only when they extend a class
+     * outside the application, such as a vendor model. Helpers that merely live in
+     * that folder do not.
+     */
+    private function kindFromModelsNamespace(ScannedClass $class): ?ClassKind
+    {
+        if (! str_contains('\\'.$this->namespaceOf($class->name).'\\', '\\Models\\')) {
+            return null;
+        }
+
+        $current = $class;
+        $visited = [];
+
+        while ($current->parent !== null && ! isset($visited[$current->name])) {
+            $visited[$current->name] = true;
+            $parent = $this->classes[$current->parent] ?? null;
+
+            if ($parent === null) {
+                return ClassKind::Model;
+            }
+
+            $current = $parent;
+        }
+
+        return null;
+    }
+
     private function kindFromNamespace(string $class): ?ClassKind
     {
-        $namespace = '\\'.substr($class, 0, (int) strrpos($class, '\\')).'\\';
+        $namespace = '\\'.$this->namespaceOf($class).'\\';
 
         foreach (self::NAMESPACE_SEGMENTS as $segment => $kind) {
             if (str_contains($namespace, '\\'.$segment.'\\')) {
@@ -169,5 +227,10 @@ final class KindResolver
         }
 
         return null;
+    }
+
+    private function namespaceOf(string $class): string
+    {
+        return substr($class, 0, (int) strrpos($class, '\\'));
     }
 }

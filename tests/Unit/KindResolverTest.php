@@ -22,8 +22,30 @@ it('resolves kinds from framework base classes', function (string $parent, Class
     ['Illuminate\Foundation\Http\FormRequest', ClassKind::FormRequest],
     ['Illuminate\Http\Resources\Json\JsonResource', ClassKind::Resource],
     ['Illuminate\Mail\Mailable', ClassKind::Mail],
+    ['Illuminate\Database\Eloquent\Builder', ClassKind::Builder],
     ['RuntimeException', ClassKind::Exception],
 ]);
+
+it('resolves kinds from framework interfaces', function (string $interface, ClassKind $kind): void {
+    $class = new ScannedClass('Acme\Thing', DeclarationType::Class_, 'app/Acme/Thing.php', interfaces: [$interface]);
+
+    expect((new KindResolver([$class]))->resolve($class))->toBe($kind);
+})->with([
+    ['Illuminate\Contracts\Validation\ValidationRule', ClassKind::Rule],
+    ['Illuminate\Contracts\Database\Eloquent\CastsAttributes', ClassKind::Cast],
+]);
+
+it('only treats classes in a Models namespace as models when they extend Eloquent', function (): void {
+    $model = scannedClass('App\Models\Order', 'Illuminate\Database\Eloquent\Model');
+    $label = scannedClass('App\Models\Labels\Sheet', 'App\Models\Labels\Label');
+    $base = scannedClass('App\Models\Labels\Label');
+
+    $resolver = new KindResolver([$model, $label, $base]);
+
+    expect($resolver->resolve($model))->toBe(ClassKind::Model)
+        ->and($resolver->resolve($label))->toBe(ClassKind::Other)
+        ->and($resolver->resolve($base))->toBe(ClassKind::Other);
+});
 
 it('inherits the kind of an internal parent class', function (): void {
     $base = scannedClass('Acme\Support\BaseModel', 'Illuminate\Database\Eloquent\Model');
@@ -43,6 +65,10 @@ it('falls back to the namespace and then the class name', function (string $name
     ['App\Support\RedirectResponse', ClassKind::Response],
     ['App\Domain\Billing\Actions\ChargeCustomer', ClassKind::Action],
     ['App\Support\InvoiceService', ClassKind::Service],
+    ['App\Repositories\SongRepository', ClassKind::Repository],
+    ['App\Models\Builders\AssetBuilder', ClassKind::Builder],
+    ['App\Rules\Uppercase', ClassKind::Rule],
+    ['App\Casts\AsMoney', ClassKind::Cast],
     ['App\Support\Money', ClassKind::Other],
 ]);
 
