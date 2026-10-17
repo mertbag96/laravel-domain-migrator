@@ -10,6 +10,7 @@ enum ClassKind: string
     case Controller = 'controller';
     case FormRequest = 'form_request';
     case Resource = 'resource';
+    case Response = 'response';
     case Middleware = 'middleware';
     case Job = 'job';
     case Event = 'event';

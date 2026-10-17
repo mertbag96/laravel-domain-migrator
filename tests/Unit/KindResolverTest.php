@@ -39,6 +39,8 @@ it('falls back to the namespace and then the class name', function (string $name
 })->with([
     ['App\Http\Controllers\Controller', ClassKind::Controller],
     ['App\Listeners\SendReceipt', ClassKind::Listener],
+    ['App\Http\Responses\LoginResponse', ClassKind::Response],
+    ['App\Support\RedirectResponse', ClassKind::Response],
     ['App\Domain\Billing\Actions\ChargeCustomer', ClassKind::Action],
     ['App\Support\InvoiceService', ClassKind::Service],
     ['App\Support\Money', ClassKind::Other],
