@@ -7,7 +7,7 @@
 
 Move a growing Laravel MVC app toward a modular, domain-oriented structure — safely and incrementally.
 
-> **Status:** pre-1.0. The analyzer is usable today; enforcement and migration are on the roadmap, and the API may still change between minor versions.
+> **Status:** pre-1.0. The analyzer and boundary checks are usable today; migration is on the roadmap, and the API may still change between minor versions.
 
 ![HTML report for Snipe-IT: 720 classes grouped into 13 suggested domains and a shared kernel](https://raw.githubusercontent.com/mertbag96/laravel-domain-migrator/main/art/html-report.png)
 
@@ -18,7 +18,7 @@ Move a growing Laravel MVC app toward a modular, domain-oriented structure — s
 The package works in three phases:
 
 1. **Analyze** (read-only, available now) — parses your app, builds a weighted dependency graph of models, relationships, controllers, jobs, events and services, suggests candidate domains and a shared kernel, and highlights coupling hot spots.
-2. **Enforce** (planned) — keeps domain boundaries intact through a PHPStan rule, a Pest arch preset or an Artisan command, with a baseline for existing violations.
+2. **Enforce** (available now as `domain:check`) — fails CI when a class starts depending on a domain its own domain is not allowed to use, with a baseline for existing violations. A PHPStan rule and a Pest arch preset are coming next.
 3. **Migrate** (planned) — moves a domain's classes into `app/Domain/{Name}` with Rector and handles the Laravel-specific traps: morph maps, serialized queued jobs, factory and policy discovery, and string class references.
 
 It does not try to "do DDD for you". Modeling the business is still your job; this package removes the mechanical work and the risk around it.
@@ -80,7 +80,77 @@ The JSON report contains every class with its role, domain and coupling metrics,
 php artisan domain:analyze --map=domain-map.json
 ```
 
-Writes the suggested domains to a file you can review, edit and commit. The upcoming migration commands will read this file. An existing map is never overwritten unless you pass `--force`.
+Writes the suggested domains to a file you can review, edit and commit. `domain:check` and the upcoming migration commands read this file.
+
+```json
+{
+    "schema": 2,
+    "domains": [
+        {
+            "name": "Billing",
+            "depends_on": ["Orders"],
+            "namespaces": ["App\\Domain\\Billing"],
+            "classes": ["App\\Models\\Invoice", "App\\Jobs\\GenerateInvoice"]
+        }
+    ],
+    "shared": ["App\\Support\\Money"],
+    "unassigned": []
+}
+```
+
+- `classes` assigns classes to the domain wherever they live today, so the map works before you move any file.
+- `namespaces` assigns every class under a namespace, which is handy once a domain lives in `app/Domain/Billing`. A class listed in `classes` wins over a namespace, and the longest matching namespace wins otherwise.
+- `depends_on` lists the domains this domain may use. A new map allows exactly the dependencies your code has today, so you can tighten it one entry at a time. Remove the key to stop checking a domain.
+- `shared` classes may be used by every domain. `unassigned` classes are not checked.
+
+An existing map is never overwritten unless you pass `--force`. To add classes written since the map was created without losing your changes, run:
+
+```bash
+php artisan domain:analyze --update --map=domain-map.json
+```
+
+`--update` keeps every domain, rule and assignment in the map, places new (and previously unassigned) classes, and drops classes that no longer exist. Review the diff before committing it.
+
+### Enforce domain boundaries
+
+```bash
+php artisan domain:check
+```
+
+Checks every dependency against `domain-map.json` and fails when a class uses a domain that its own domain does not list in `depends_on`:
+
+```
+  Users → Labels (not in depends_on)
+  app/Http/Controllers/Users/BadgeController.php:6  BadgeController uses Label (usage, import)
+
+   ERROR  1 new boundary violation. 4 known violations are in the baseline.
+```
+
+Every kind of dependency counts, including a plain `use` import, because each one stops the domain from being moved cleanly.
+
+**Adopting it in an existing app.** Tighten `depends_on` to the rules you want, then record today's violations in a baseline so that only new ones fail:
+
+```bash
+php artisan domain:check --generate-baseline
+```
+
+The baseline (`domain-baseline.json`) identifies violations by class, not by line, so unrelated edits don't invalidate it. When a baselined violation is fixed, `domain:check` tells you to regenerate the baseline.
+
+| Option | Description |
+|---|---|
+| `--map=` | The domain map (default: `domain-map.json`, or `boundaries.map` in the config) |
+| `--baseline=` | The baseline (default: `domain-baseline.json`, or `boundaries.baseline`) |
+| `--generate-baseline` | Write every current violation to the baseline and exit successfully |
+| `--format=` | `console` (default), `json`, or `github` for inline pull request annotations |
+
+The command exits with `0` when there are no new violations, `1` when there are, and `2` when the map, baseline or configuration is invalid.
+
+**GitHub Actions:**
+
+```yaml
+- name: Check domain boundaries
+  run: php artisan domain:check --format=github
+```
 
 ## How it works
 
@@ -134,6 +204,12 @@ Classes are grouped with the [Louvain community detection algorithm](https://arx
     'usage' => 2,
     'import' => 1,
 ],
+
+// Default files for domain:check, relative to the application base path.
+'boundaries' => [
+    'map' => 'domain-map.json',
+    'baseline' => 'domain-baseline.json',
+],
 ```
 
 ## Roadmap
@@ -142,7 +218,8 @@ Classes are grouped with the [Louvain community detection algorithm](https://arx
 |---|---|---|
 | 0.1 | Scanner, dependency graph, coupling metrics, console and JSON report | Done |
 | 0.2 | Domain clustering, shared kernel detection, domain map and an HTML report | Done |
-| 0.3 | Boundary enforcement: PHPStan rule, Pest preset, `domain:check`, baseline | Next |
+| 0.3 | Boundary enforcement: `domain:check` with a baseline and GitHub annotations, `--map --update` | Done |
+| 0.3.x | PHPStan rule and Pest arch preset that read the same domain map | Next |
 | 0.4–1.0 | `domain:plan` and `domain:move` with Laravel-aware safety handling | Planned |
 
 ## Testing

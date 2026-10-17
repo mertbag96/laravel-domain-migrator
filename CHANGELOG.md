@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-17
+
+Boundary enforcement: once the team has reviewed the domain map, CI keeps the boundaries from getting worse.
+
+### Added
+
+- `domain:check` command that fails when a class depends on a domain that its own domain does not list in `depends_on`. It prints each violation with its file and line, and exits with `0` (no new violations), `1` (new violations) or `2` (invalid map, baseline or configuration).
+- Baseline for existing violations: `domain:check --generate-baseline` writes `domain-baseline.json`, after which only new violations fail. Fixed baseline entries are reported.
+- `--format=json` and `--format=github` for `domain:check`; the GitHub format shows violations inline on pull requests.
+- `domain:analyze --update --map=...` places new and unassigned classes in an existing map without changing reviewed domains, rules or assignments.
+- `boundaries.map` and `boundaries.baseline` configuration options.
+- The scanner records the line of the first reference to each dependency.
+
+### Changed
+
+- Domain maps use schema 2: each domain has `depends_on` (pre-filled with today's domain-to-domain dependencies) and `namespaces`; `cohesion` and `pinned` stay in the analysis report only. Schema 1 maps are still read, and their domains are not checked until `depends_on` is added.
+
 ## [0.2.1] - 2026-10-17
 
 Clustering fixes found by running the analyzer on [Koel](https://github.com/koel/koel) and [Snipe-IT](https://github.com/grokability/snipe-it).
@@ -48,6 +65,7 @@ First public release.
 - Coupling metrics per class (dependents, dependencies, instability) and a ranked list of hot spots.
 - Unparsable files are reported instead of aborting the analysis.
 
-[Unreleased]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/mertbag96/laravel-domain-migrator/releases/tag/v0.2.0
