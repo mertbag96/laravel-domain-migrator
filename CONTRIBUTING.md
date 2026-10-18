@@ -10,6 +10,8 @@ There is no required process beyond what GitHub enforces on `main`: changes land
 2. Open a pull request against `main` when you are ready.
 3. If CI fails, fix what you can or ask for help in the PR — maintainers merge when checks are green.
 
+**First PR from a fork:** GitHub may wait for a maintainer to **approve the workflow run** once before CI starts (fork safety). After that, later PRs from the same contributor usually run automatically.
+
 Large or ambiguous changes (new commands, breaking behavior) are easier to review if you open an **issue** first, but that is optional.
 
 ## Local checks
