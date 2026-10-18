@@ -7,7 +7,7 @@
 
 Move a growing Laravel MVC app toward a modular, domain-oriented structure — safely and incrementally.
 
-> **Status:** pre-1.0. The analyzer and boundary checks are usable today; migration is on the roadmap, and the API may still change between minor versions.
+> **Status:** pre-1.0. The analyzer, boundary checks and migration plans are usable today; moving classes is next on the roadmap, and the API may still change between minor versions.
 
 ![HTML report for Snipe-IT: 720 classes grouped into 13 suggested domains and a shared kernel](https://raw.githubusercontent.com/mertbag96/laravel-domain-migrator/main/art/html-report.png)
 
@@ -19,7 +19,7 @@ The package works in three phases:
 
 1. **Analyze** (read-only, available now) — parses your app, builds a weighted dependency graph of models, relationships, controllers, jobs, events and services, suggests candidate domains and a shared kernel, and highlights coupling hot spots.
 2. **Enforce** (available now) — fails CI when a class starts depending on a domain its own domain is not allowed to use, with a baseline for existing violations. Run it as `domain:check`, as a PHPStan rule or as a Pest arch preset; all three read the same domain map.
-3. **Migrate** (planned) — moves a domain's classes into `app/Domain/{Name}` with Rector and handles the Laravel-specific traps: morph maps, serialized queued jobs, factory and policy discovery, and string class references.
+3. **Migrate** (planning available now) — `domain:plan` shows where each class of a domain would move in `app/Domain/{Name}`, which files refer to them, and what the move would break: polymorphic types, queued payloads, database notifications, broadcast names, factory, policy and listener discovery, and class names in strings. `domain:move`, which performs the move, is next.
 
 It does not try to "do DDD for you". Modeling the business is still your job; this package removes the mechanical work and the risk around it.
 
@@ -208,6 +208,61 @@ It fails on the same violations as `domain:check`, with the same report:
 
 The preset reads the map, the baseline and the scan settings from `config/domain-migrator.php`, so it does not need the application to be booted. It also fails when the map is missing or was written by 0.2 and has no `depends_on` rules yet.
 
+### Plan a domain move
+
+Before moving a domain, see what the move would involve:
+
+```bash
+php artisan domain:plan Posts
+```
+
+The plan lists where each class of the domain would go, and every risk with the classes it affects, the file and line, and how to fix it. Nothing is changed:
+
+```
+  Posts → App\Domain\Posts (10 classes move, 13 files refer to them)
+
+  app/Http/Controllers/PostController.php ............. app/Domain/Posts/Http/Controllers/PostController.php
+  app/Jobs/PublishPost.php ........................................... app/Domain/Posts/Jobs/PublishPost.php
+  app/Models/Post.php ..................................................... app/Domain/Posts/Models/Post.php
+  ...
+
+   BREAKING  Polymorphic types
+  These models are stored by class name in polymorphic *_type columns, and the app has no morph map. Existing rows keep the old class name, so their relations stop resolving after the move.
+  app/Models/Post.php:21 .............................................. Post declares a morphMany() relation
+  Fix: Before moving, give each model an alias with Relation::enforceMorphMap(['post' => Post::class]) and update the existing *_type values to the alias in a migration.
+
+   BREAKING  Model factories
+  Laravel finds a model's factory, and a factory's model, from their class names. After the move the names no longer match, so factory() and seeders fail.
+  app/Models/Post.php . Post will look for its factory at Database\Factories\Domain\Posts\Models\PostFactory
+  database/factories/PostFactory.php:7 .................... PostFactory guesses its model as App\Models\Post
+  Fix: Add #[UseFactory(PostFactory::class)] or a newFactory() method to the model, and a $model property to the factory, before moving.
+
+   REVIEW  Class names in strings
+  Class names in strings, Blade templates and data files are not updated by a rename.
+  config/blog.php:6 ............................................................ Post is written as a string
+  Fix: Replace strings with ::class references where you can, and update the rest by hand after the move.
+
+   WARN  0 blockers, 8 breaking risks and 1 to review. Handle the breaking risks before deploying the move. Nothing was changed.
+```
+
+Each class keeps its path below the domain: `App\Http\Controllers\Api\PostController` becomes `App\Domain\Posts\Http\Controllers\Api\PostController`. A namespace segment that repeats the domain name is dropped, so `App\Models\Posts\Post` becomes `App\Domain\Posts\Models\Post`. Targets and file paths follow the PSR-4 roots in `composer.json`.
+
+Risks come in three levels:
+
+| Level | Meaning | Examples |
+|---|---|---|
+| Blocker | The move cannot be done as planned | a file that declares more than one class, a file at the wrong PSR-4 path, a target that already exists |
+| Breaking | The move works, but something stops working until you handle it | polymorphic types without a morph map, queued payloads, database notifications, broadcast names, factory and policy guessing, listener, command, Livewire, Filament and Nova discovery |
+| Review | Worth a look after the move | class names in strings, Blade templates and JSON or YAML files |
+
+Risks the app already handles are left out: models in the morph map, notifications with `databaseType()`, events with `broadcastAs()`, models with `#[UseFactory]` or `newFactory()`, and policies and listeners registered in a service provider or `bootstrap/app.php`. Relations and methods declared in your own traits and parent classes count too.
+
+References are searched in `app`, `bootstrap`, `config`, `database`, `routes`, `resources/views` and `tests`. Use `--format=json` for the full plan, including every reference:
+
+```bash
+php artisan domain:plan Posts --format=json > plan.json
+```
+
 ## How it works
 
 ### Dependencies
@@ -266,6 +321,12 @@ Classes are grouped with the [Louvain community detection algorithm](https://arx
     'map' => 'domain-map.json',
     'baseline' => 'domain-baseline.json',
 ],
+
+// Where domain:plan puts each domain, and where it looks for references to moved classes.
+'domain' => [
+    'namespace' => 'App\\Domain',
+    'reference_paths' => ['app', 'bootstrap', 'config', 'database', 'routes', 'resources/views', 'tests'],
+],
 ```
 
 ## Roadmap
@@ -277,7 +338,8 @@ Classes are grouped with the [Louvain community detection algorithm](https://arx
 | 0.3 | Boundary enforcement: `domain:check` with a baseline and GitHub annotations, `--map --update` | Done |
 | 0.3.1 | PHPStan rule that reads the same domain map | Done |
 | 0.3.2 | Pest arch preset that reads the same domain map | Done |
-| 0.4–1.0 | `domain:plan` and `domain:move` with Laravel-aware safety handling | Next |
+| 0.4 | `domain:plan`: target names and paths, references, and Laravel-specific risks for moving a domain | Done |
+| 0.5–1.0 | `domain:move`: moves a domain and rewrites its references, with Laravel-aware safety handling | Next |
 
 ## Testing
 
