@@ -22,6 +22,17 @@ php artisan domain:analyze --format=html
 
 ![Where to start: domains ranked by how easy they are to move first](https://raw.githubusercontent.com/mertbag96/laravel-domain-migrator/main/art/where-to-start.png)
 
+### Real-world examples
+
+Run on open source apps (read-only analyze, a few seconds on large codebases):
+
+| App | Scale | Domains | Ready to move first (examples) |
+|-----|-------|---------|--------------------------------|
+| [Snipe-IT](https://github.com/grokability/snipe-it) | 720 classes | 13 suggested | **ComponentAssignments**, **Categories** (Assets needs preparation) |
+| [Koel](https://github.com/koel/koel) | 1,029 classes | 26 suggested | **16** domains ready (e.g. **MediaImageUpdates**, **Scanners**, **HookRegistries**) |
+
+Screenshots above are from Snipe-IT. Koel shows more, smaller domains — useful when comparing clustering on a music app vs. an asset manager.
+
 ## What it does
 
 The package works in three phases:

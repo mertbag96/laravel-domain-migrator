@@ -6,10 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-10-18
+
+Documentation and repository polish ahead of public launch.
+
 ### Added
 
-- Minimal contribution docs: [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), optional issue and pull request templates.
-- Updated README screenshots and `art/social-preview.png` (1280×640) for the repository social preview.
+- [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and optional GitHub issue and pull request templates (no enforced commit or PR format).
+- README **Real-world examples** for [Snipe-IT](https://github.com/grokability/snipe-it) and [Koel](https://github.com/koel/koel) with scale and readiness notes.
+- `art/social-preview.png` (1280×640) for the GitHub repository social preview.
+
+### Changed
+
+- Refreshed README screenshots (`art/html-report.png`, `art/where-to-start.png`) from Snipe-IT on v0.4.2.
 
 ## [0.4.2] - 2026-10-18
 
