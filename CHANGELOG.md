@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-10-18
+
+Saved HTML and JSON reports now show which Laravel application they came from.
+
 ### Added
 
 - HTML and JSON reports include the application name (`config('app.name')`) and project root path so a saved report file shows which app it belongs to.
@@ -114,7 +118,8 @@ First public release.
 - Coupling metrics per class (dependents, dependencies, instability) and a ranked list of hot spots.
 - Unparsable files are reported instead of aborting the analysis.
 
-[Unreleased]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.3.1...v0.3.2
