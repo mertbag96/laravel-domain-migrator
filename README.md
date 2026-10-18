@@ -7,11 +7,20 @@
 
 Move a growing Laravel MVC app toward a modular, domain-oriented structure — safely and incrementally.
 
-> **Status:** pre-1.0. The analyzer, boundary checks and migration plans are usable today; moving classes is next on the roadmap, and the API may still change between minor versions.
+Run one command to see how your code clusters into domains, which domain to extract first, and what would break if you moved it today:
 
-![HTML report for Snipe-IT: 720 classes grouped into 13 suggested domains and a shared kernel](https://raw.githubusercontent.com/mertbag96/laravel-domain-migrator/main/art/html-report.png)
+```bash
+composer require --dev mertbag96/laravel-domain-migrator
+php artisan domain:analyze --format=html
+```
 
-<sub>The HTML report for [Snipe-IT](https://github.com/grokability/snipe-it), generated in about a second.</sub>
+> **Status:** pre-1.0. Analyze, enforce boundaries and dry-run migration plans are usable today; `domain:move` is next on the roadmap. The API may still change between minor versions.
+
+![HTML report for Snipe-IT: domain graph, readiness ranking and move risks for the Assets domain](https://raw.githubusercontent.com/mertbag96/laravel-domain-migrator/main/art/html-report.png)
+
+<sub>The HTML report for [Snipe-IT](https://github.com/grokability/snipe-it) (720 classes, 13 suggested domains), generated in a few seconds on a large app.</sub>
+
+![Where to start: domains ranked by how easy they are to move first](https://raw.githubusercontent.com/mertbag96/laravel-domain-migrator/main/art/where-to-start.png)
 
 ## What it does
 
@@ -52,6 +61,7 @@ The analyzer parses every PHP file in the configured paths (default: `app/`) wit
 
 - the number of classes per Laravel role (models, controllers, actions, jobs, ...),
 - the suggested domains, with their size and cohesion,
+- **where to start:** each domain ranked by move readiness (ready, needs preparation, or blocked), with a dry run of what `domain:plan` would report,
 - the shared kernel: classes used by many domains,
 - the coupling hot spots: classes with the most dependents, which are the hardest to move into a domain,
 - files that could not be parsed.
@@ -63,7 +73,18 @@ php artisan domain:analyze --format=html
 php artisan domain:analyze --format=html --output=storage/domain-report.html
 ```
 
-This writes a single, self-contained HTML file (default: `domain-report.html`) with an interactive dependency graph colored by domain. It needs no internet connection, so you can attach it to a pull request or share it with your team. Click a class to see what it depends on and what depends on it, click a domain to focus on it, or search for a class.
+This writes a single, self-contained HTML file (default: `domain-report.html`). It needs no internet connection, so you can attach it to a pull request or share it with your team.
+
+The report includes:
+
+- a **domain graph** (bubble layout) and a **class graph** with drill-down; double-click a domain to see its classes,
+- **where to start:** domains ranked by extraction readiness, with preparation counts and a copyable `domain:plan` command,
+- a **domain dependency matrix** with per-cell class dependency counts,
+- a detail panel for domains, classes and matrix cells (cohesion, move targets, risks, depends on / used by),
+- coupling hot spots and domain cards,
+- light/dark theme, deep links (`#domain=Billing&view=classes`), search and PNG export.
+
+Color by domain or by readiness. On large apps, generating the report takes a few seconds because every domain is planned once to compute readiness.
 
 ### JSON report
 
@@ -72,7 +93,7 @@ php artisan domain:analyze --format=json
 php artisan domain:analyze --format=json --output=domain-analysis.json
 ```
 
-The JSON report contains every class with its role, domain and coupling metrics, every dependency with its link types and weight, the suggested domains, and the hot spots.
+The JSON report contains every class with its role, domain and coupling metrics, every dependency with its link types and weight, the suggested domains, move readiness for each domain (status, risks and counts), and the hot spots.
 
 ### Domain map
 
@@ -339,6 +360,7 @@ Classes are grouped with the [Louvain community detection algorithm](https://arx
 | 0.3.1 | PHPStan rule that reads the same domain map | Done |
 | 0.3.2 | Pest arch preset that reads the same domain map | Done |
 | 0.4 | `domain:plan`: target names and paths, references, and Laravel-specific risks for moving a domain | Done |
+| 0.4.1 | Move readiness in analyze (console, JSON, HTML); redesigned HTML report (domain view, matrix, themes) | Done |
 | 0.5–1.0 | `domain:move`: moves a domain and rewrites its references, with Laravel-aware safety handling | Next |
 
 ## Testing

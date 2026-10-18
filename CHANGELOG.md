@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-19
+
+Analyze now ranks every suggested domain for extraction readiness, and the HTML report is rebuilt for domain-level planning.
+
+### Added
+
+- Move readiness in `domain:analyze`: each suggested domain is planned once from a single project scan. Console output lists **Where to start** (easiest domains first). JSON and HTML reports include status (`ready`, `needs_preparation`, `blocked`), risk counts and the same ordering as `domain:plan`.
+- Redesigned self-contained HTML report: domain bubble graph with drill-down to classes, domain dependency matrix, detail panel (readiness, move targets, risks, depends on / used by), ranked **Where to start** list, light/dark/auto theme, hash links for shareable state, class search, labels toggle and PNG export.
+
+### Changed
+
+- `PlanMigrationAction` can plan all domains in one scan (`executeAll`), reused by readiness assessment.
+- `ClassNameMatcher` uses a single generic FQCN pattern with a hash-set lookup (same matches as before).
+
 ## [0.4.0] - 2026-10-18
 
 Migration planning: see what moving a domain would change and break, before changing anything.
@@ -96,7 +110,8 @@ First public release.
 - Coupling metrics per class (dependents, dependencies, instability) and a ranked list of hot spots.
 - Unparsable files are reported instead of aborting the analysis.
 
-[Unreleased]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.3.0...v0.3.1
