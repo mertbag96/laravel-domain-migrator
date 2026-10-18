@@ -16,9 +16,9 @@ php artisan domain:analyze --format=html
 
 > **Status:** pre-1.0. Analyze, enforce boundaries and dry-run migration plans are usable today; `domain:move` is next on the roadmap. The API may still change between minor versions.
 
-![HTML report for Snipe-IT: domain graph, readiness ranking and move risks for the Assets domain](https://raw.githubusercontent.com/mertbag96/laravel-domain-migrator/main/art/html-report.png)
+![HTML report for Snipe-IT: app title, domain graph, and move risks for the Assets domain](https://raw.githubusercontent.com/mertbag96/laravel-domain-migrator/main/art/html-report.png)
 
-<sub>The HTML report for [Snipe-IT](https://github.com/grokability/snipe-it) (720 classes, 13 suggested domains), generated in a few seconds on a large app.</sub>
+<sub>The HTML report for [Snipe-IT](https://github.com/grokability/snipe-it) (720 classes, 13 suggested domains). The header shows which app the file belongs to.</sub>
 
 ![Where to start: domains ranked by how easy they are to move first](https://raw.githubusercontent.com/mertbag96/laravel-domain-migrator/main/art/where-to-start.png)
 

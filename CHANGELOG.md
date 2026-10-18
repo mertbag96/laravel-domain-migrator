@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Minimal contribution docs: [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), optional issue and pull request templates.
+- Updated README screenshots and `art/social-preview.png` (1280×640) for the repository social preview.
 
 ## [0.4.2] - 2026-10-18
 
