@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Minimal contribution docs: [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), optional issue and pull request templates.
+
 ## [0.4.2] - 2026-10-18
 
 Saved HTML and JSON reports now show which Laravel application they came from.

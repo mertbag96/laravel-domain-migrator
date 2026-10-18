@@ -375,6 +375,10 @@ composer format
 
 See [CHANGELOG.md](CHANGELOG.md).
 
+## Contributing
+
+Pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md). To report security issues, see [SECURITY.md](SECURITY.md).
+
 ## License
 
 The MIT License (MIT). See [LICENSE.md](LICENSE.md).
