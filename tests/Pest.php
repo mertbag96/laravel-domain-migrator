@@ -2,10 +2,13 @@
 
 declare(strict_types=1);
 
+use Illuminate\Filesystem\Filesystem;
 use MertBag\DomainMigrator\Analysis\Graph\DependencyGraph;
 use MertBag\DomainMigrator\Analysis\Graph\GraphBuilder;
 use MertBag\DomainMigrator\Data\AnalysisOptions;
+use MertBag\DomainMigrator\Data\BoundaryMap;
 use MertBag\DomainMigrator\Data\DependencyWeights;
+use MertBag\DomainMigrator\Data\DomainDefinition;
 use MertBag\DomainMigrator\Data\ScannedClass;
 use MertBag\DomainMigrator\Data\SourceFile;
 use MertBag\DomainMigrator\Enums\DeclarationType;
@@ -62,6 +65,70 @@ function graphOf(array $dependencies, array $parents = []): DependencyGraph
             dependencies: $types,
         );
     }, $names)), new DependencyWeights);
+}
+
+function blogPath(string $path = ''): string
+{
+    return __DIR__.'/Fixtures/blog'.($path === '' ? '' : '/'.$path);
+}
+
+/**
+ * A disposable copy of the blog fixture, for tests that edit it.
+ *
+ * @param  array<string, ?string>  $files  Relative path => new contents, or null to delete the file.
+ */
+function blogCopy(array $files = []): string
+{
+    $directory = sys_get_temp_dir().'/domain-migrator-blog-'.bin2hex(random_bytes(6));
+    $filesystem = new Filesystem;
+    $filesystem->copyDirectory(blogPath(), $directory);
+
+    foreach ($files as $path => $contents) {
+        if ($contents === null) {
+            $filesystem->delete("{$directory}/{$path}");
+        } else {
+            $filesystem->ensureDirectoryExists(dirname("{$directory}/{$path}"));
+            $filesystem->put("{$directory}/{$path}", $contents);
+        }
+    }
+
+    register_shutdown_function(static fn (): bool => $filesystem->deleteDirectory($directory));
+
+    return $directory;
+}
+
+/**
+ * The blog fixture split into a Posts and a Users domain.
+ *
+ * @param  array<string, list<string>>  $domains  Domain => classes, replacing the default assignment.
+ */
+function blogMap(array $domains = []): BoundaryMap
+{
+    $domains += [
+        'Posts' => [
+            'App\Models\Post',
+            'App\Models\Comment',
+            'App\Jobs\PublishPost',
+            'App\Notifications\PostPublished',
+            'App\Events\PostWasPublished',
+            'App\Listeners\NotifyAuthor',
+            'App\Console\Commands\PublishScheduledPosts',
+            'App\Policies\PostPolicy',
+            'App\Http\Controllers\PostController',
+            'App\Livewire\PostList',
+        ],
+        'Users' => ['App\Models\User'],
+    ];
+
+    return new BoundaryMap(
+        domains: array_map(fn (string $name, array $classes): DomainDefinition => new DomainDefinition($name, $classes, dependsOn: []), array_keys($domains), array_values($domains)),
+        shared: ['App\Http\Controllers\Controller'],
+    );
+}
+
+function blogOptions(?string $basePath = null): AnalysisOptions
+{
+    return new AnalysisOptions(basePath: $basePath ?? blogPath(), paths: ['app'], exclude: ['app/Providers/*']);
 }
 
 function temporaryPhpFile(string $code): SourceFile

@@ -47,3 +47,17 @@ arch('only the Pest integration depends on Pest, which is optional')
 arch('boundary checks do not depend on the console layer or on clustering')
     ->expect('MertBag\DomainMigrator\Boundaries')
     ->not->toUse(['MertBag\DomainMigrator\Commands', 'MertBag\DomainMigrator\Reporting', 'MertBag\DomainMigrator\Analysis\Clustering', 'Illuminate\Console']);
+
+arch('migration planning does not depend on the console layer, boundaries or clustering')
+    ->expect('MertBag\DomainMigrator\Migration')
+    ->not->toUse(['MertBag\DomainMigrator\Commands', 'MertBag\DomainMigrator\Reporting', 'MertBag\DomainMigrator\Boundaries', 'MertBag\DomainMigrator\Analysis\Clustering', 'Illuminate\Console']);
+
+arch('analysis and boundary checks do not depend on migration planning')
+    ->expect(['MertBag\DomainMigrator\Analysis', 'MertBag\DomainMigrator\Boundaries'])
+    ->not->toUse('MertBag\DomainMigrator\Migration');
+
+arch('risk detectors are final and implement the detector contract')
+    ->expect('MertBag\DomainMigrator\Migration\Risks')
+    ->classes()
+    ->toBeFinal()
+    ->toImplement('MertBag\DomainMigrator\Migration\Risks\RiskDetector');

@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `domain:plan {domain}` command that lists where each class of a domain would move in `app/Domain/{Name}`, keeping its path below the domain, and which files refer to the moved classes. Targets and file paths follow the PSR-4 roots in `composer.json`. It exits with `0`, or `2` for an unknown domain, an invalid map or invalid configuration.
+- Risk detection for the move, in three levels. Blockers: classes outside PSR-4, files at the wrong path, files with more than one class, existing and duplicate targets. Breaking: polymorphic types without a morph map (including Notifiable, Sanctum, Spatie and Auditing traits), queued payloads and the models they carry, database notifications, broadcast event names, factory and policy guessing, and listener, command, Livewire, Filament and Nova discovery. Review: class names in strings, Blade templates and JSON or YAML files. Risks the app already handles, such as morph map entries, `databaseType()`, `broadcastAs()`, `#[UseFactory]` and explicit registrations, are left out.
+- `--format=json` for `domain:plan`, with every move, risk and reference.
+- `domain.reference_paths` configuration option: where `domain:plan` looks for references to moved classes.
+
+### Removed
+
+- The unused `domain.path` configuration option. The directory of a domain now follows from `domain.namespace` and the PSR-4 roots in `composer.json`.
+
 ## [0.3.2] - 2026-10-18
 
 Boundary checks run in your Pest suite, from the same domain map as `domain:check` and PHPStan.

@@ -52,14 +52,18 @@ return [
     | Domain Target
     |--------------------------------------------------------------------------
     |
-    | Where domains live once migrated. The default keeps everything under
-    | the existing "App\" PSR-4 root so no autoload changes are needed.
+    | Where domains live once migrated: "domain:plan Orders" moves classes
+    | to App\Domain\Orders. File paths follow the PSR-4 autoload section of
+    | composer.json, so the default needs no autoload changes.
+    |
+    | References to moved classes are searched for in the reference paths
+    | (relative to the base path); paths that do not exist are skipped.
     |
     */
 
     'domain' => [
-        'path' => 'app/Domain',
         'namespace' => 'App\\Domain',
+        'reference_paths' => ['app', 'bootstrap', 'config', 'database', 'routes', 'resources/views', 'tests'],
     ],
 
     /*

@@ -7,6 +7,7 @@ namespace MertBag\DomainMigrator\Reporting;
 use MertBag\DomainMigrator\Data\AnalysisReport;
 use MertBag\DomainMigrator\Data\BoundaryCheckResult;
 use MertBag\DomainMigrator\Data\BoundaryMap;
+use MertBag\DomainMigrator\Data\MigrationPlan;
 
 final readonly class JsonReportFormatter
 {
@@ -28,5 +29,10 @@ final readonly class JsonReportFormatter
     public function formatCheckResult(BoundaryCheckResult $result): string
     {
         return json_encode($result->toArray(), self::FLAGS);
+    }
+
+    public function formatPlan(MigrationPlan $plan): string
+    {
+        return json_encode($plan->toArray(), self::FLAGS);
     }
 }
