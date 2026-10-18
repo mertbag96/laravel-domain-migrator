@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-18
+
+Migration planning: see what moving a domain would change and break, before changing anything.
+
 ### Added
 
 - `domain:plan {domain}` command that lists where each class of a domain would move in `app/Domain/{Name}`, keeping its path below the domain, and which files refer to the moved classes. Targets and file paths follow the PSR-4 roots in `composer.json`. It exits with `0`, or `2` for an unknown domain, an invalid map or invalid configuration.
@@ -92,7 +96,8 @@ First public release.
 - Coupling metrics per class (dependents, dependencies, instability) and a ranked list of hot spots.
 - Unparsable files are reported instead of aborting the analysis.
 
-[Unreleased]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.2.1...v0.3.0
