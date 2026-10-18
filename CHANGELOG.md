@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- README: `^0.4.3` install example, analyze phase readiness line, roadmap rows for 0.4.2 and 0.4.3.
+
 ## [0.4.3] - 2026-10-18
 
 Documentation and repository polish ahead of public launch.

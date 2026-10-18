@@ -10,7 +10,7 @@ Move a growing Laravel MVC app toward a modular, domain-oriented structure — s
 Run one command to see how your code clusters into domains, which domain to extract first, and what would break if you moved it today:
 
 ```bash
-composer require --dev mertbag96/laravel-domain-migrator
+composer require --dev mertbag96/laravel-domain-migrator:^0.4.3
 php artisan domain:analyze --format=html
 ```
 
@@ -37,7 +37,7 @@ Screenshots above are from Snipe-IT. Koel shows more, smaller domains — useful
 
 The package works in three phases:
 
-1. **Analyze** (read-only, available now) — parses your app, builds a weighted dependency graph of models, relationships, controllers, jobs, events and services, suggests candidate domains and a shared kernel, and highlights coupling hot spots.
+1. **Analyze** (read-only, available now) — parses your app, builds a weighted dependency graph of models, relationships, controllers, jobs, events and services, suggests candidate domains and a shared kernel, ranks **where to start** (move readiness in the console, JSON and HTML reports), and highlights coupling hot spots.
 2. **Enforce** (available now) — fails CI when a class starts depending on a domain its own domain is not allowed to use, with a baseline for existing violations. Run it as `domain:check`, as a PHPStan rule or as a Pest arch preset; all three read the same domain map.
 3. **Migrate** (planning available now) — `domain:plan` shows where each class of a domain would move in `app/Domain/{Name}`, which files refer to them, and what the move would break: polymorphic types, queued payloads, database notifications, broadcast names, factory, policy and listener discovery, and class names in strings. `domain:move`, which performs the move, is next.
 
@@ -372,6 +372,8 @@ Classes are grouped with the [Louvain community detection algorithm](https://arx
 | 0.3.2 | Pest arch preset that reads the same domain map | Done |
 | 0.4 | `domain:plan`: target names and paths, references, and Laravel-specific risks for moving a domain | Done |
 | 0.4.1 | Move readiness in analyze (console, JSON, HTML); redesigned HTML report (domain view, matrix, themes) | Done |
+| 0.4.2 | Application name and project path on HTML and JSON reports | Done |
+| 0.4.3 | Contributing and security docs; README examples (Snipe-IT, Koel); refreshed screenshots | Done |
 | 0.5–1.0 | `domain:move`: moves a domain and rewrites its references, with Laravel-aware safety handling | Next |
 
 ## Testing
