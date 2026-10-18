@@ -10,10 +10,13 @@ use MertBag\DomainMigrator\Data\AnalysisReport;
 use MertBag\DomainMigrator\Data\ClassMetrics;
 use MertBag\DomainMigrator\Data\DomainMap;
 use MertBag\DomainMigrator\Data\SkippedFile;
+use MertBag\DomainMigrator\Enums\ReadinessStatus;
 
 final readonly class ConsoleReportRenderer
 {
     private const int SHARED_LISTED = 8;
+
+    private const int READINESS_LISTED = 5;
 
     public function render(AnalysisReport $report, OutputStyle $output, Factory $components): void
     {
@@ -25,6 +28,7 @@ final readonly class ConsoleReportRenderer
 
         $this->renderKinds($report, $output, $components);
         $this->renderDomains($report, $output, $components);
+        $this->renderReadiness($report, $output, $components);
         $this->renderHotspots($report, $output);
         $this->renderSkippedFiles($report, $components);
 
@@ -82,6 +86,43 @@ final readonly class ConsoleReportRenderer
         }
 
         $output->newLine();
+    }
+
+    private function renderReadiness(AnalysisReport $report, OutputStyle $output, Factory $components): void
+    {
+        if ($report->readiness === []) {
+            return;
+        }
+
+        $output->writeln('  <options=bold>Where to start</> <fg=gray>(easiest domains to move first)</>');
+
+        foreach (array_slice($report->readiness, 0, self::READINESS_LISTED) as $readiness) {
+            $color = match ($readiness->status()) {
+                ReadinessStatus::Ready => 'green',
+                ReadinessStatus::NeedsPreparation => 'yellow',
+                ReadinessStatus::Blocked => 'red',
+            };
+
+            $components->twoColumnDetail(
+                $readiness->plan->domain,
+                sprintf(
+                    '<fg=%s>%s</> <fg=gray>·</> %s, %s',
+                    $color,
+                    $readiness->status()->label(),
+                    $this->plural(count($readiness->plan->moves), 'class', 'classes'),
+                    $readiness->preparationItems() === 0 ? 'nothing to prepare' : $this->plural($readiness->preparationItems(), 'thing', 'things').' to prepare',
+                ),
+            );
+        }
+
+        $output->newLine();
+        $output->writeln(sprintf('  Run <fg=yellow>php artisan domain:plan %s</> to see what moving it involves.', $report->readiness[0]->plan->domain));
+        $output->newLine();
+    }
+
+    private function plural(int $count, string $singular, string $plural): string
+    {
+        return $count.' '.($count === 1 ? $singular : $plural);
     }
 
     /**

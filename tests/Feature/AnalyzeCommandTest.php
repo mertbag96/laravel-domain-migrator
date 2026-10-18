@@ -85,7 +85,8 @@ it('writes a self-contained html report', function (): void {
     expect($html)->toStartWith('<!DOCTYPE html>')
         ->not->toContain('{{REPORT_JSON}}')
         ->not->toContain('src="http')
-        ->and(json_decode($matches[1], true)['summary']['classes'])->toBe(18);
+        ->and(json_decode($matches[1], true)['summary']['classes'])->toBe(18)
+        ->and(json_decode($matches[1], true)['readiness'])->not->toBeEmpty();
 
     unlink($path);
 });

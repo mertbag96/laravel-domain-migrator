@@ -34,6 +34,18 @@ final readonly class ProjectScan
         $this->referencesByClass = $byClass;
     }
 
+    /**
+     * The same scan, with only the references to the given classes.
+     *
+     * @param  list<string>  $classes
+     */
+    public function withReferencesTo(array $classes): self
+    {
+        $references = array_merge([], ...array_map(fn (string $class): array => $this->referencesByClass[$class] ?? [], $classes));
+
+        return new self($references, $this->facts, $this->morphMap, $this->skippedFiles);
+    }
+
     public function facts(string $class): ?ClassFacts
     {
         return $this->facts[$class] ?? null;

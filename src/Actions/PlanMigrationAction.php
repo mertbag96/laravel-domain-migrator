@@ -6,12 +6,15 @@ namespace MertBag\DomainMigrator\Actions;
 
 use MertBag\DomainMigrator\Data\AnalysisOptions;
 use MertBag\DomainMigrator\Data\BoundaryMap;
+use MertBag\DomainMigrator\Data\ClassMove;
 use MertBag\DomainMigrator\Data\ClassReference;
 use MertBag\DomainMigrator\Data\DomainDefinition;
 use MertBag\DomainMigrator\Data\MigrationOptions;
 use MertBag\DomainMigrator\Data\MigrationPlan;
 use MertBag\DomainMigrator\Data\MigrationRisk;
 use MertBag\DomainMigrator\Data\PlanContext;
+use MertBag\DomainMigrator\Data\Psr4Root;
+use MertBag\DomainMigrator\Data\ScanResult;
 use MertBag\DomainMigrator\Data\SkippedFile;
 use MertBag\DomainMigrator\Exceptions\InvalidConfigurationException;
 use MertBag\DomainMigrator\Exceptions\InvalidMigrationPlanException;
@@ -46,10 +49,58 @@ final readonly class PlanMigrationAction
     public function execute(AnalysisOptions $options, MigrationOptions $migration, BoundaryMap $map, string $domain): MigrationPlan
     {
         $definition = $this->domain($map, $domain);
-        $scan = $this->scan->execute($options);
-        $roots = $this->psr4->read($options->basePath);
-        $namespace = $this->targets->namespaceOf($definition->name, $migration);
 
+        return $this->plan([$definition], $this->scan->execute($options), $options->basePath, $migration, $map)[0];
+    }
+
+    /**
+     * Plans every domain of the map from a single scan of the project.
+     *
+     * @return list<MigrationPlan>
+     *
+     * @throws InvalidMigrationPlanException
+     */
+    public function executeAll(ScanResult $scan, string $basePath, MigrationOptions $migration, BoundaryMap $map): array
+    {
+        return $map->domains === [] ? [] : $this->plan($map->domains, $scan, $basePath, $migration, $map);
+    }
+
+    /**
+     * @param  non-empty-list<DomainDefinition>  $definitions
+     * @return non-empty-list<MigrationPlan>
+     *
+     * @throws InvalidMigrationPlanException
+     */
+    private function plan(array $definitions, ScanResult $scan, string $basePath, MigrationOptions $migration, BoundaryMap $map): array
+    {
+        $roots = $this->psr4->read($basePath);
+        $targets = array_map(fn (DomainDefinition $definition): array => $this->targetsOf($definition, $scan, $migration, $map, $roots), $definitions);
+        $moved = array_merge([], ...array_map(fn (array $target): array => array_keys($target['moves']), $targets));
+        $project = $this->projectScanner->scan($basePath, $migration->referencePaths, $moved);
+
+        return array_map(function (DomainDefinition $definition, array $target) use ($scan, $basePath, $roots, $project, $definitions): MigrationPlan {
+            $domainProject = count($definitions) === 1 ? $project : $project->withReferencesTo(array_keys($target['moves']));
+            $context = new PlanContext($definition->name, $basePath, $target['moves'], $target['unresolved'], $roots, $scan->graph, $domainProject);
+
+            return new MigrationPlan(
+                domain: $definition->name,
+                namespace: $target['namespace'],
+                moves: array_values($target['moves']),
+                inPlace: $target['inPlace'],
+                references: $this->sortedReferences($domainProject->references),
+                risks: $this->risks($context),
+                skippedFiles: $this->skippedFiles([...$scan->skippedFiles, ...$project->skippedFiles]),
+            );
+        }, $definitions, $targets);
+    }
+
+    /**
+     * @param  list<Psr4Root>  $roots
+     * @return array{namespace: string, moves: array<string, ClassMove>, inPlace: list<string>, unresolved: list<string>}
+     */
+    private function targetsOf(DomainDefinition $definition, ScanResult $scan, MigrationOptions $migration, BoundaryMap $map, array $roots): array
+    {
+        $namespace = $this->targets->namespaceOf($definition->name, $migration);
         $moves = [];
         $inPlace = [];
         $unresolved = [];
@@ -74,18 +125,7 @@ final readonly class PlanMigrationAction
             }
         }
 
-        $project = $this->projectScanner->scan($options->basePath, $migration->referencePaths, array_keys($moves));
-        $context = new PlanContext($definition->name, $options->basePath, $moves, $unresolved, $roots, $scan->graph, $project);
-
-        return new MigrationPlan(
-            domain: $definition->name,
-            namespace: $namespace,
-            moves: array_values($moves),
-            inPlace: $inPlace,
-            references: $this->sortedReferences($project->references),
-            risks: $this->risks($context),
-            skippedFiles: $this->skippedFiles([...$scan->skippedFiles, ...$project->skippedFiles]),
-        );
+        return ['namespace' => $namespace, 'moves' => $moves, 'inPlace' => $inPlace, 'unresolved' => $unresolved];
     }
 
     private function domain(BoundaryMap $map, string $name): DomainDefinition

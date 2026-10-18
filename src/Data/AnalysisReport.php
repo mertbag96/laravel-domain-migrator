@@ -15,6 +15,7 @@ final readonly class AnalysisReport
     /**
      * @param  array<string, ClassMetrics>  $metrics  Keyed by fully qualified class name.
      * @param  list<SkippedFile>  $skippedFiles
+     * @param  list<DomainReadiness>  $readiness  Sorted from the easiest domain to move to the hardest.
      */
     public function __construct(
         public DependencyGraph $graph,
@@ -22,7 +23,16 @@ final readonly class AnalysisReport
         public array $skippedFiles,
         public int $hotspotLimit,
         public DomainMap $domains = new DomainMap,
+        public array $readiness = [],
     ) {}
+
+    /**
+     * @param  list<DomainReadiness>  $readiness
+     */
+    public function withReadiness(array $readiness): self
+    {
+        return new self($this->graph, $this->metrics, $this->skippedFiles, $this->hotspotLimit, $this->domains, $readiness);
+    }
 
     /**
      * Classes with the most dependents, which are the hardest to move between domains.
@@ -107,6 +117,7 @@ final readonly class AnalysisReport
             ], $this->graph->edges),
             'domains' => $this->domains->toArray(),
             'hotspots' => array_map(fn (ClassMetrics $metrics): string => $metrics->class, $this->hotspots()),
+            'readiness' => array_map(fn (DomainReadiness $readiness): array => $readiness->toArray(), $this->readiness),
             'skipped_files' => array_map(fn (SkippedFile $file): array => [
                 'file' => $file->file,
                 'reason' => $file->reason,

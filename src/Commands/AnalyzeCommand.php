@@ -7,12 +7,15 @@ namespace MertBag\DomainMigrator\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Filesystem\Filesystem;
 use MertBag\DomainMigrator\Actions\AnalyzeApplicationAction;
+use MertBag\DomainMigrator\Actions\AssessReadinessAction;
 use MertBag\DomainMigrator\Actions\BuildDomainMapAction;
 use MertBag\DomainMigrator\Boundaries\DomainMapReader;
 use MertBag\DomainMigrator\Data\AnalysisOptions;
+use MertBag\DomainMigrator\Data\MigrationOptions;
 use MertBag\DomainMigrator\Enums\ReportFormat;
 use MertBag\DomainMigrator\Exceptions\InvalidConfigurationException;
 use MertBag\DomainMigrator\Exceptions\InvalidDomainMapException;
+use MertBag\DomainMigrator\Exceptions\InvalidMigrationPlanException;
 use MertBag\DomainMigrator\Reporting\ConsoleReportRenderer;
 use MertBag\DomainMigrator\Reporting\ReportWriter;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -32,6 +35,7 @@ final class AnalyzeCommand extends Command
 
     public function handle(
         AnalyzeApplicationAction $analyze,
+        AssessReadinessAction $assessReadiness,
         BuildDomainMapAction $buildMap,
         DomainMapReader $mapReader,
         ConsoleReportRenderer $consoleRenderer,
@@ -78,6 +82,12 @@ final class AnalyzeCommand extends Command
             $this->components->error($exception->getMessage());
 
             return self::FAILURE;
+        }
+
+        try {
+            $report = $report->withReadiness($assessReadiness->execute($report, $options->basePath, $this->laravel->make(MigrationOptions::class), $existingMap));
+        } catch (InvalidConfigurationException|InvalidMigrationPlanException $exception) {
+            $this->components->warn('Skipped the move readiness of each domain: '.$exception->getMessage());
         }
 
         if ($mapPath !== null) {

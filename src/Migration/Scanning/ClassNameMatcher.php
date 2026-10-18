@@ -12,22 +12,18 @@ namespace MertBag\DomainMigrator\Migration\Scanning;
  */
 final readonly class ClassNameMatcher
 {
-    private const int CLASSES_PER_PATTERN = 200;
+    /** Whole namespaced names, so App\Models\Post never matches inside App\Models\PostTag or MyApp\Models\Post. */
+    private const string NAME = '/(?<![\w\\\\])\\\\{0,2}[A-Za-z_]\w*(?:\\\\{1,2}[A-Za-z_]\w*)+(?![\w\\\\])/';
 
-    /** @var list<string> */
-    private array $patterns;
+    /** @var array<string, true> */
+    private array $classes;
 
     /**
      * @param  list<string>  $classes
      */
     public function __construct(array $classes)
     {
-        usort($classes, fn (string $a, string $b): int => strlen($b) <=> strlen($a));
-
-        $this->patterns = array_map(
-            fn (array $chunk): string => '/(?<![\w\\\\])\\\\{0,2}(?:'.implode('|', array_map($this->pattern(...), $chunk)).')(?![\w\\\\])/',
-            array_chunk($classes, self::CLASSES_PER_PATTERN),
-        );
+        $this->classes = array_fill_keys($classes, true);
     }
 
     /**
@@ -43,25 +39,21 @@ final readonly class ClassNameMatcher
      */
     public function matchWithOffsets(string $text): array
     {
-        if ($this->patterns === [] || ! str_contains($text, '\\')) {
+        if ($this->classes === [] || ! str_contains($text, '\\')) {
             return [];
         }
 
+        preg_match_all(self::NAME, $text, $found, PREG_OFFSET_CAPTURE);
         $matches = [];
 
-        foreach ($this->patterns as $pattern) {
-            preg_match_all($pattern, $text, $found, PREG_OFFSET_CAPTURE);
+        foreach ($found[0] as [$name, $offset]) {
+            $class = (string) preg_replace('/\\\\+/', '\\', ltrim($name, '\\'));
 
-            foreach ($found[0] as [$name, $offset]) {
-                $matches[] = [(string) preg_replace('/\\\\+/', '\\', ltrim($name, '\\')), $offset];
+            if (isset($this->classes[$class])) {
+                $matches[] = [$class, $offset];
             }
         }
 
         return $matches;
-    }
-
-    private function pattern(string $class): string
-    {
-        return implode('\\\\{1,2}', array_map(fn (string $segment): string => preg_quote($segment, '/'), explode('\\', $class)));
     }
 }

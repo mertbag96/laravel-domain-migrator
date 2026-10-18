@@ -55,6 +55,13 @@ it('collects what classes declare', function (): void {
         ->and($scan->ancestors('App\Livewire\PostList'))->toBe(['Livewire\Component']);
 });
 
+it('narrows a scan to the references of some classes', function (): void {
+    $scan = scanBlog(['App\Models\Post', 'App\Models\User'])->withReferencesTo(['App\Models\User']);
+
+    expect(array_unique(array_map(fn (ClassReference $reference): string => $reference->class, $scan->references)))->toBe(['App\Models\User'])
+        ->and($scan->facts('App\Models\Post'))->not->toBeNull();
+});
+
 it('finds morph map registrations', function (): void {
     expect(scanBlog([])->morphMap)->toBeNull();
 
