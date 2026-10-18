@@ -47,7 +47,11 @@ final readonly class BroadcastNameDetector implements RiskDetector
             RiskLevel::Breaking,
             'Broadcast event names',
             'Broadcast events are named after their full class name unless they define broadcastAs(). Echo listeners for the old name stop receiving them after the move.',
-            'Add a broadcastAs() method that returns a stable name, or update the frontend listeners.',
+            sprintf(
+                "Before moving, add a broadcastAs() method that returns the current name, such as return '%s'; in %s, so existing listeners keep working. Or update the frontend listeners after the move.",
+                $items[0]->class,
+                class_basename($items[0]->class),
+            ),
             $items,
         )];
     }

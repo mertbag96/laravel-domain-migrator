@@ -28,18 +28,21 @@ final readonly class DiscoveryDetector implements RiskDetector
 
     public function detect(PlanContext $context): array
     {
+        $listeners = $this->frameworkDiscovered($context, ClassKind::Listener, 'app/Listeners/', ['app/Providers/', 'bootstrap/']);
+        $commands = $this->frameworkDiscovered($context, ClassKind::Command, 'app/Console/Commands/', ['app/Providers/', 'bootstrap/', 'app/Console/Kernel.php']);
+
         return array_values(array_filter([
             $this->risk(
                 'Listener discovery',
                 'Laravel discovers event listeners in app/Listeners. Moved listeners stop handling their events unless they are registered.',
-                'Add the new directory to ->withEvents(discover: [...]) in bootstrap/app.php, or register the listeners with Event::listen().',
-                $this->frameworkDiscovered($context, ClassKind::Listener, 'app/Listeners/', ['app/Providers/', 'bootstrap/']),
+                $this->listenerFix($context, $listeners),
+                $this->itemsFor($listeners, 'app/Listeners'),
             ),
             $this->risk(
                 'Command discovery',
                 'Laravel loads Artisan commands from app/Console/Commands. Moved commands disappear from Artisan and the scheduler unless they are registered.',
-                'Add the new directory to ->withCommands([...]) in bootstrap/app.php.',
-                $this->frameworkDiscovered($context, ClassKind::Command, 'app/Console/Commands/', ['app/Providers/', 'bootstrap/', 'app/Console/Kernel.php']),
+                $this->commandFix($context, $commands),
+                $this->itemsFor($commands, 'app/Console/Commands'),
             ),
             $this->risk(
                 'Package discovery',
@@ -52,21 +55,77 @@ final readonly class DiscoveryDetector implements RiskDetector
 
     /**
      * @param  list<string>  $registrationPaths
-     * @return list<RiskItem>
+     * @return list<ClassMove>
      */
     private function frameworkDiscovered(PlanContext $context, ClassKind $kind, string $directory, array $registrationPaths): array
     {
-        $moves = array_filter(
+        return array_values(array_filter(
             $context->moves,
             fn (ClassMove $move): bool => $move->kind === $kind
                 && str_starts_with($move->file, $directory)
                 && ! $context->isReferencedFrom($move->class, $registrationPaths),
-        );
-
-        return array_values(array_map(
-            fn (ClassMove $move): RiskItem => new RiskItem($move->class, 'is discovered in '.rtrim($directory, '/'), $move->file),
-            $moves,
         ));
+    }
+
+    /**
+     * @param  list<ClassMove>  $moves
+     * @return list<RiskItem>
+     */
+    private function itemsFor(array $moves, string $directory): array
+    {
+        return array_map(fn (ClassMove $move): RiskItem => new RiskItem($move->class, "is discovered in {$directory}", $move->file), $moves);
+    }
+
+    /**
+     * @param  list<ClassMove>  $moves
+     */
+    private function listenerFix(PlanContext $context, array $moves): string
+    {
+        $directory = $this->targetDirectory($moves);
+
+        if (is_file($context->basePath.'/app/Providers/EventServiceProvider.php')) {
+            return "Add base_path('{$directory}') to discoverEventsWithin() in app/Providers/EventServiceProvider.php, or register the listeners with Event::listen().";
+        }
+
+        return "Add ->withEvents(discover: [__DIR__.'/../app/Listeners', __DIR__.'/../{$directory}']) to bootstrap/app.php, or register the listeners with Event::listen().";
+    }
+
+    /**
+     * @param  list<ClassMove>  $moves
+     */
+    private function commandFix(PlanContext $context, array $moves): string
+    {
+        $directory = $this->targetDirectory($moves);
+
+        if (is_file($context->basePath.'/app/Console/Kernel.php')) {
+            return "Add \$this->load(base_path('{$directory}')); to commands() in app/Console/Kernel.php.";
+        }
+
+        return "Add __DIR__.'/../{$directory}' to ->withCommands([...]) in bootstrap/app.php.";
+    }
+
+    /**
+     * The deepest directory that contains every target file; Laravel searches it recursively.
+     *
+     * @param  list<ClassMove>  $moves
+     */
+    private function targetDirectory(array $moves): string
+    {
+        $common = null;
+
+        foreach ($moves as $move) {
+            $segments = explode('/', dirname($move->targetFile));
+            $common ??= $segments;
+            $length = 0;
+
+            while ($length < min(count($common), count($segments)) && $common[$length] === $segments[$length]) {
+                $length++;
+            }
+
+            $common = array_slice($common, 0, $length);
+        }
+
+        return implode('/', $common ?? []);
     }
 
     /**

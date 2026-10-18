@@ -258,6 +258,49 @@ describe('discovery', function (): void {
     });
 });
 
+it('suggests fixes that name the affected classes', function (): void {
+    $plan = planBlog();
+    $fix = fn (RiskType $type): string => risksOf($plan, $type)[0]->fix;
+
+    expect($fix(RiskType::MorphType))->toContain("Relation::morphMap(['post' => Post::class])")
+        ->and($fix(RiskType::Factory))->toContain('add #[UseFactory(PostFactory::class)] to Post, and add protected $model = Post::class; to PostFactory.')
+        ->and($fix(RiskType::BroadcastName))->toContain("return 'App\Events\PostWasPublished'; in PostWasPublished")
+        ->and($fix(RiskType::DatabaseNotification))->toContain("return 'App\Notifications\PostPublished'; in PostPublished");
+});
+
+it('points discovery fixes at the new directories', function (): void {
+    $fixes = array_map(fn (MigrationRisk $risk): string => $risk->fix, risksOf(planBlog(), RiskType::Discovery));
+
+    expect($fixes[0])->toContain("->withEvents(discover: [__DIR__.'/../app/Listeners', __DIR__.'/../app/Domain/Posts/Listeners'])")
+        ->and($fixes[1])->toContain("__DIR__.'/../app/Domain/Posts/Console/Commands' to ->withCommands([...])");
+
+    $directory = blogCopy([
+        'app/Console/Kernel.php' => "<?php\n\nnamespace App\\Console;\n\nclass Kernel {}\n",
+        'app/Providers/EventServiceProvider.php' => "<?php\n\nnamespace App\\Providers;\n\nclass EventServiceProvider {}\n",
+    ]);
+    $fixes = array_map(fn (MigrationRisk $risk): string => $risk->fix, risksOf(planBlog($directory), RiskType::Discovery));
+
+    expect($fixes[0])->toContain("base_path('app/Domain/Posts/Listeners') to discoverEventsWithin()")
+        ->and($fixes[1])->toContain("\$this->load(base_path('app/Domain/Posts/Console/Commands')); to commands() in app/Console/Kernel.php");
+});
+
+it('keeps acronyms together in morph aliases', function (): void {
+    $directory = blogCopy(['app/Models/SCIMUser.php' => "<?php\n\nnamespace App\\Models;\n\nuse Illuminate\\Database\\Eloquent\\Model;\n\nclass SCIMUser extends Model\n{\n    use \\Illuminate\\Notifications\\Notifiable;\n}\n"]);
+
+    expect(risksOf(planBlog($directory, blogMap(['Posts' => ['App\Models\SCIMUser']])), RiskType::MorphType)[0]->fix)
+        ->toContain("['scim_user' => SCIMUser::class]");
+});
+
+it('adds models to an existing morph map', function (): void {
+    $directory = blogCopy(['app/Providers/AppServiceProvider.php' => blogProvider(
+        "Relation::morphMap(['comment' => Comment::class]);",
+        "use App\\Models\\Comment;\nuse Illuminate\\Database\\Eloquent\\Relations\\Relation;",
+    )]);
+
+    expect(risksOf(planBlog($directory), RiskType::MorphType)[0]->fix)
+        ->toContain("add each model to the morph map: ['post' => Post::class]");
+});
+
 it('asks to review class names written as strings', function (): void {
     $items = risksOf(planBlog(), RiskType::StringReference)[0]->items;
 

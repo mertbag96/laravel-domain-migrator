@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MertBag\DomainMigrator\Migration\Risks;
 
+use Illuminate\Support\Str;
 use MertBag\DomainMigrator\Data\ClassFacts;
 use MertBag\DomainMigrator\Data\MigrationRisk;
 use MertBag\DomainMigrator\Data\PlanContext;
@@ -76,9 +77,33 @@ final readonly class MorphTypeDetector implements RiskDetector
                 'These models are stored by class name in polymorphic *_type columns, and %s. Existing rows keep the old class name, so their relations stop resolving after the move.',
                 $context->project->morphMap === null ? 'the app has no morph map' : 'they are missing from the morph map',
             ),
-            "Before moving, give each model an alias with Relation::enforceMorphMap(['post' => Post::class]) and update the existing *_type values to the alias in a migration.",
+            sprintf(
+                'Before moving, %s and update the existing *_type values from the class names to the aliases in a migration.',
+                $context->project->morphMap === null
+                    ? 'give each model an alias in a service provider with Relation::morphMap('.$this->aliases($items).')'
+                    : 'add each model to the morph map: '.$this->aliases($items),
+            ),
             $items,
         )];
+    }
+
+    /**
+     * @param  list<RiskItem>  $items
+     */
+    private function aliases(array $items): string
+    {
+        $models = array_values(array_unique(array_map(fn (RiskItem $item): string => class_basename($item->class), $items)));
+        $entries = array_map(fn (string $model): string => sprintf("'%s' => %s::class", $this->alias($model), $model), array_slice($models, 0, 3));
+
+        return '['.implode(', ', $entries).(count($models) > 3 ? ', ...' : '').']';
+    }
+
+    /**
+     * A snake_case alias that keeps acronyms together: SCIMUser becomes scim_user.
+     */
+    private function alias(string $model): string
+    {
+        return Str::lower((string) preg_replace('/(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])/', '_', $model));
     }
 
     /**

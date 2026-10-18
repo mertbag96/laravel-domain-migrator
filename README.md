@@ -216,7 +216,7 @@ Before moving a domain, see what the move would involve:
 php artisan domain:plan Posts
 ```
 
-The plan lists where each class of the domain would go, and every risk with the classes it affects, the file and line, and how to fix it. Nothing is changed:
+The plan lists where each class of the domain would go, and every risk with the classes it affects, the file and line, and a fix written for your classes. Nothing is changed:
 
 ```
   Posts → App\Domain\Posts (10 classes move, 13 files refer to them)
@@ -229,13 +229,13 @@ The plan lists where each class of the domain would go, and every risk with the 
    BREAKING  Polymorphic types
   These models are stored by class name in polymorphic *_type columns, and the app has no morph map. Existing rows keep the old class name, so their relations stop resolving after the move.
   app/Models/Post.php:21 .............................................. Post declares a morphMany() relation
-  Fix: Before moving, give each model an alias with Relation::enforceMorphMap(['post' => Post::class]) and update the existing *_type values to the alias in a migration.
+  Fix: Before moving, give each model an alias in a service provider with Relation::morphMap(['post' => Post::class]) and update the existing *_type values from the class names to the aliases in a migration.
 
    BREAKING  Model factories
   Laravel finds a model's factory, and a factory's model, from their class names. After the move the names no longer match, so factory() and seeders fail.
   app/Models/Post.php . Post will look for its factory at Database\Factories\Domain\Posts\Models\PostFactory
   database/factories/PostFactory.php:7 .................... PostFactory guesses its model as App\Models\Post
-  Fix: Add #[UseFactory(PostFactory::class)] or a newFactory() method to the model, and a $model property to the factory, before moving.
+  Fix: Before moving, add #[UseFactory(PostFactory::class)] to Post, and add protected $model = Post::class; to PostFactory.
 
    REVIEW  Class names in strings
   Class names in strings, Blade templates and data files are not updated by a rename.
