@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- HTML and JSON reports include the application name (`config('app.name')`) and project root path so a saved report file shows which app it belongs to.
+
 ## [0.4.1] - 2026-10-18
 
 Analyze now ranks every suggested domain for extraction readiness, and the HTML report is rebuilt for domain-level planning.

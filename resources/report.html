@@ -175,8 +175,9 @@
   <div class="brand">
     <div class="mark" aria-hidden="true"></div>
     <div>
-      <h1>Domain report</h1>
+      <h1 id="app-title">Domain report</h1>
       <p class="muted" id="subtitle"></p>
+      <p class="muted" id="app-path" hidden></p>
     </div>
   </div>
   <nav>
@@ -377,8 +378,22 @@
   // Summary
 
   const ready = [...readiness.values()].filter((entry) => entry.status === 'ready').length;
-  document.getElementById('subtitle').textContent =
-    `${plural(data.summary.classes, 'class', 'classes')} · ${plural(data.summary.dependencies, 'dependency', 'dependencies')} · ${plural(data.summary.domains, 'suggested domain')}`;
+  const application = data.application ?? null;
+  const appTitle = document.getElementById('app-title');
+  const appPath = document.getElementById('app-path');
+
+  if (application?.name) {
+    appTitle.textContent = application.name;
+    document.title = `${application.name} · Domain report · Laravel Domain Migrator`;
+  }
+
+  if (application?.base_path) {
+    appPath.hidden = false;
+    appPath.textContent = application.base_path;
+  }
+
+  const stats = `${plural(data.summary.classes, 'class', 'classes')} · ${plural(data.summary.dependencies, 'dependency', 'dependencies')} · ${plural(data.summary.domains, 'suggested domain')}`;
+  document.getElementById('subtitle').textContent = application?.name ? `Domain report · ${stats}` : stats;
 
   [
     ['Classes', data.summary.classes],

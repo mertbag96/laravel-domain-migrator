@@ -12,6 +12,7 @@ use MertBag\DomainMigrator\Actions\BuildDomainMapAction;
 use MertBag\DomainMigrator\Boundaries\DomainMapReader;
 use MertBag\DomainMigrator\Data\AnalysisOptions;
 use MertBag\DomainMigrator\Data\MigrationOptions;
+use MertBag\DomainMigrator\Data\ReportApplication;
 use MertBag\DomainMigrator\Enums\ReportFormat;
 use MertBag\DomainMigrator\Exceptions\InvalidConfigurationException;
 use MertBag\DomainMigrator\Exceptions\InvalidDomainMapException;
@@ -89,6 +90,13 @@ final class AnalyzeCommand extends Command
         } catch (InvalidConfigurationException|InvalidMigrationPlanException $exception) {
             $this->components->warn('Skipped the move readiness of each domain: '.$exception->getMessage());
         }
+
+        $applicationName = config('app.name');
+
+        $report = $report->withApplication(new ReportApplication(
+            is_string($applicationName) && $applicationName !== '' ? $applicationName : 'Application',
+            $options->basePath,
+        ));
 
         if ($mapPath !== null) {
             $writer->writeDomainMap($buildMap->execute($report, $existingMap), $mapPath);

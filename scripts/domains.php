@@ -16,6 +16,7 @@ use MertBag\DomainMigrator\Analysis\Metrics\MetricsCalculator;
 use MertBag\DomainMigrator\Analysis\Scanning\ClassScanner;
 use MertBag\DomainMigrator\Analysis\Scanning\SourceFileFinder;
 use MertBag\DomainMigrator\Data\AnalysisOptions;
+use MertBag\DomainMigrator\Data\ReportApplication;
 use MertBag\DomainMigrator\Reporting\HtmlReportRenderer;
 
 require __DIR__.'/../vendor/autoload.php';
@@ -79,6 +80,8 @@ foreach ($report->domains->domains as $domain) {
 printf("\nShared: %s\n", implode(', ', array_map(class_basename(...), $report->domains->shared)));
 
 if ($htmlPath !== null) {
-    file_put_contents($htmlPath, (new HtmlReportRenderer)->render($report));
+    file_put_contents($htmlPath, (new HtmlReportRenderer)->render(
+        $report->withApplication(ReportApplication::fromProjectRoot($basePath)),
+    ));
     echo "\nHTML report written to {$htmlPath}\n";
 }

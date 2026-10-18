@@ -24,14 +24,20 @@ final readonly class AnalysisReport
         public int $hotspotLimit,
         public DomainMap $domains = new DomainMap,
         public array $readiness = [],
+        public ?ReportApplication $application = null,
     ) {}
+
+    public function withApplication(ReportApplication $application): self
+    {
+        return new self($this->graph, $this->metrics, $this->skippedFiles, $this->hotspotLimit, $this->domains, $this->readiness, $application);
+    }
 
     /**
      * @param  list<DomainReadiness>  $readiness
      */
     public function withReadiness(array $readiness): self
     {
-        return new self($this->graph, $this->metrics, $this->skippedFiles, $this->hotspotLimit, $this->domains, $readiness);
+        return new self($this->graph, $this->metrics, $this->skippedFiles, $this->hotspotLimit, $this->domains, $readiness, $this->application);
     }
 
     /**
@@ -86,6 +92,7 @@ final readonly class AnalysisReport
     {
         return [
             'schema' => self::SCHEMA_VERSION,
+            'application' => $this->application?->toArray(),
             'summary' => [
                 'classes' => count($this->graph->nodes),
                 'dependencies' => count($this->graph->edges),

@@ -28,6 +28,8 @@ it('prints the report as json', function (): void {
     $report = json_decode(Artisan::output(), true, flags: JSON_THROW_ON_ERROR);
 
     expect($report['schema'])->toBe(1)
+        ->and($report['application']['name'])->toBe(config('app.name'))
+        ->and($report['application']['base_path'])->toBe(config('domain-migrator.base_path'))
         ->and($report['summary']['classes'])->toBe(18)
         ->and($report['summary']['skipped_files'])->toBe(1)
         ->and($report['kinds']['model'])->toBe(5)
@@ -86,7 +88,8 @@ it('writes a self-contained html report', function (): void {
         ->not->toContain('{{REPORT_JSON}}')
         ->not->toContain('src="http')
         ->and(json_decode($matches[1], true)['summary']['classes'])->toBe(18)
-        ->and(json_decode($matches[1], true)['readiness'])->not->toBeEmpty();
+        ->and(json_decode($matches[1], true)['readiness'])->not->toBeEmpty()
+        ->and(json_decode($matches[1], true)['application']['name'])->toBe(config('app.name'));
 
     unlink($path);
 });
