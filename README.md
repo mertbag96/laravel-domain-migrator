@@ -10,11 +10,11 @@ Move a growing Laravel MVC app toward a modular, domain-oriented structure — s
 Run one command to see how your code clusters into domains, which domain to extract first, and what would break if you moved it today:
 
 ```bash
-composer require --dev mertbag96/laravel-domain-migrator:^0.4.4
+composer require --dev mertbag96/laravel-domain-migrator:^0.5.0
 php artisan domain:analyze --format=html
 ```
 
-> **Status:** pre-1.0. Analyze, enforce boundaries and dry-run migration plans are usable today; `domain:move` is available as an early version. The API may still change between minor versions.
+> **Status:** pre-1.0. **Analyze**, **boundaries**, and **`domain:plan`** are the stable core today. **`domain:move`** (since 0.5.0) is an **early** executor: run **`domain:plan`**, then **`domain:move --dry-run`**, commit on a branch, and handle breaking risks yourself — the tool does not fix morph maps, queues, or similar runtime breaks, and there is **no rollback**. The API may still change between minor versions.
 
 ![HTML report for Snipe-IT: app title, domain graph, and move risks for the Assets domain](https://raw.githubusercontent.com/mertbag96/laravel-domain-migrator/main/art/html-report.png)
 
@@ -306,7 +306,14 @@ php artisan domain:move Posts             # move it
 
 It moves each class file to its planned path, rewrites the `namespace` line, updates `use` imports and fully qualified names, updates class names in strings, Blade views and JSON or YAML files, and updates the domain map. A class that was reached through its old namespace without an import gets an import. The move stops when the plan has a blocker; `--force` moves anyway when the plan only has breaking risks. Review the plan first, then run `composer dump-autoload` and your tests.
 
-Not rewritten, and listed afterwards: grouped imports (`use App\Models\{A, B}`) and class names in comments. Commit before you move so that the result is easy to review.
+> **Before you run a real move**
+>
+> 1. Run **`domain:plan {Domain}`** and fix **blockers**.
+> 2. Run **`domain:move {Domain} --dry-run`** and read every path — suggested domains can include classes that belong elsewhere (for example a global `Handler` grouped into a feature domain). Edit **`domain-map.json`** or use hints until the dry run looks right.
+> 3. Work on a **git branch**; there is **no built-in rollback**.
+> 4. Treat **`domain:plan` breaking risks** as still yours: morph types, queued payloads, notifications, discovery, and the rest are **not** auto-fixed. Use **`--force`** only when you know how you will handle them before deploy.
+
+Not rewritten, and listed afterwards: grouped imports (`use App\Models\{A, B}`) and class names in comments.
 
 ## How it works
 
@@ -388,8 +395,8 @@ Classes are grouped with the [Louvain community detection algorithm](https://arx
 | 0.4.2 | Application name and project path on HTML and JSON reports | Done |
 | 0.4.3 | Contributing and security docs; README examples (Snipe-IT, Koel); refreshed screenshots | Done |
 | 0.4.4 | Windows: relative paths for analyze and `domain:plan` (fixes false PSR-4 path blockers) | Done |
-| 0.5 | `domain:move`: moves a domain, rewrites its namespaces and references | Early version |
-| 0.6–1.0 | `domain:move`: grouped imports, comments, Laravel-aware fixes for the plan's risks, rollback | Next |
+| 0.5.0 | `domain:move` (early): file moves and reference rewrites; plan gates blockers and breaking risks | Done |
+| 0.6–1.0 | Safer moves: rollback, grouped imports and comments, Laravel-aware fixes for plan breaking risks | Next |
 
 ## Testing
 

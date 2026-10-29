@@ -6,7 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-`domain:move` arrives as an early version: it performs the move that `domain:plan` previews.
+## [0.5.0] - 2026-10-29
+
+First **`domain:move`** release: an early executor for what `domain:plan` previews ([#8](https://github.com/mertbag96/laravel-domain-migrator/pull/8), thanks [@mhmadahmd](https://github.com/mhmadahmd)).
 
 ### Added
 
@@ -14,6 +16,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `--dry-run` lists every file that would move or change without writing anything.
 - `--force` moves even when the plan has breaking risks; blockers always stop the move.
 - `--map` selects the domain map (default: `boundaries.map`, then `domain-map.json`).
+- `PlanMigrationAction::executeWithScan()` for callers that already have a project scan (used by `domain:move`).
+
+### Known limitations (0.5.0)
+
+Treat **`domain:move` as early**. It is useful with **`domain:plan`**, git, and **`--dry-run`**, but it is not a full “safe production migration” yet.
+
+- **Breaking risks stay yours.** The command does not fix polymorphic types, queued job payloads, database notifications, broadcast names, factory or policy discovery, and similar issues that `domain:plan` reports. Use `--force` only when you have a plan to handle those risks before deploy.
+- **No rollback.** There is no built-in snapshot or undo. Commit (or branch) before you move; review the diff like any large refactor.
+- **Domain map quality matters.** Suggested domains come from clustering. A domain can list classes that should not move together (for example app-wide exception handlers). Always read **`--dry-run`** output and trim or adjust the map before a real run.
+- **Manual follow-up.** Grouped imports and class names in comments are reported for hand editing; not every reference shape is rewritten.
 
 ## [0.4.4] - 2026-10-29
 
@@ -153,7 +165,8 @@ First public release.
 - Coupling metrics per class (dependents, dependencies, instability) and a ranked list of hot spots.
 - Unparsable files are reported instead of aborting the analysis.
 
-[Unreleased]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.4...HEAD
+[Unreleased]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.4...v0.5.0
 [0.4.4]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.1...v0.4.2
