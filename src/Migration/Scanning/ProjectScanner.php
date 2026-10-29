@@ -135,7 +135,8 @@ final readonly class ProjectScanner
 
     private function relativePath(string $absolutePath, string $basePath): string
     {
-        $basePath = (realpath($basePath) ?: $basePath).'/';
+        $absolutePath = str_replace('\\', '/', $absolutePath);
+        $basePath = str_replace('\\', '/', realpath($basePath) ?: $basePath).'/';
 
         return str_starts_with($absolutePath, $basePath) ? substr($absolutePath, strlen($basePath)) : $absolutePath;
     }
