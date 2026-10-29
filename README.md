@@ -14,7 +14,7 @@ composer require --dev mertbag96/laravel-domain-migrator:^0.5.0
 php artisan domain:analyze --format=html
 ```
 
-> **Status:** pre-1.0. **Analyze**, **boundaries**, and **`domain:plan`** are the stable core today. **`domain:move`** (since 0.5.0) is an **early** executor: run **`domain:plan`**, then **`domain:move --dry-run`**, commit on a branch, and handle breaking risks yourself — the tool does not fix morph maps, queues, or similar runtime breaks, and there is **no rollback**. The API may still change between minor versions.
+> **Status:** pre-1.0. **Analyze**, **boundaries**, and **`domain:plan`** are the stable core today. **`domain:move`** (since 0.5.0) is an **early** executor: run **`domain:plan`**, then **`domain:move --dry-run`**, commit on a branch, and handle breaking risks yourself — the tool does not fix morph maps, queues, or similar runtime breaks. Each move writes a **backup** under `.domain-migrator/backups/`; use **`domain:rollback`** to restore file contents (still run tests and `composer dump-autoload` after). The API may still change between minor versions.
 
 ![HTML report for Snipe-IT: app title, domain graph, and move risks for the Assets domain](https://raw.githubusercontent.com/mertbag96/laravel-domain-migrator/main/art/html-report.png)
 
@@ -310,10 +310,19 @@ It moves each class file to its planned path, rewrites the `namespace` line, upd
 >
 > 1. Run **`domain:plan {Domain}`** and fix **blockers**.
 > 2. Run **`domain:move {Domain} --dry-run`** and read every path — suggested domains can include classes that belong elsewhere (for example a global `Handler` grouped into a feature domain). Edit **`domain-map.json`** or use hints until the dry run looks right.
-> 3. Work on a **git branch**; there is **no built-in rollback**.
+> 3. Work on a **git branch**. A **backup** is written by default; undo with **`domain:rollback`** if needed (add **`.domain-migrator/`** to `.gitignore`).
 > 4. Treat **`domain:plan` breaking risks** as still yours: morph types, queued payloads, notifications, discovery, and the rest are **not** auto-fixed. Use **`--force`** only when you know how you will handle them before deploy.
 
 Not rewritten, and listed afterwards: grouped imports (`use App\Models\{A, B}`) and class names in comments.
+
+```bash
+php artisan domain:rollback --list          # backups from domain:move
+php artisan domain:rollback                 # restore the latest backup
+php artisan domain:rollback 2026-10-29T120000-posts
+php artisan domain:rollback --dry-run       # preview a restore
+```
+
+Disable backups with `domain:move --no-backup` or `'move.backup' => false` in config (not recommended).
 
 ## How it works
 
@@ -379,6 +388,12 @@ Classes are grouped with the [Louvain community detection algorithm](https://arx
     'namespace' => 'App\\Domain',
     'reference_paths' => ['app', 'bootstrap', 'config', 'database', 'routes', 'resources/views', 'tests'],
 ],
+
+// Snapshots for domain:rollback (relative to the application base path).
+'move' => [
+    'backup' => true,
+    'backup_path' => '.domain-migrator/backups',
+],
 ```
 
 ## Roadmap
@@ -396,7 +411,8 @@ Classes are grouped with the [Louvain community detection algorithm](https://arx
 | 0.4.3 | Contributing and security docs; README examples (Snipe-IT, Koel); refreshed screenshots | Done |
 | 0.4.4 | Windows: relative paths for analyze and `domain:plan` (fixes false PSR-4 path blockers) | Done |
 | 0.5.0 | `domain:move` (early): file moves and reference rewrites; plan gates blockers and breaking risks | Done |
-| 0.6–1.0 | Safer moves: rollback, grouped imports and comments, Laravel-aware fixes for plan breaking risks | Next |
+| 0.6.0 | `domain:rollback` and on-disk move backups (default before each move) | In progress |
+| 0.6–1.0 | Grouped imports and comments, Laravel-aware fixes for plan breaking risks | Next |
 
 ## Testing
 

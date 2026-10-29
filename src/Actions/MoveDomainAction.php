@@ -8,13 +8,18 @@ use MertBag\DomainMigrator\Data\AnalysisOptions;
 use MertBag\DomainMigrator\Data\BoundaryMap;
 use MertBag\DomainMigrator\Data\ClassMove;
 use MertBag\DomainMigrator\Data\MigrationOptions;
+use MertBag\DomainMigrator\Data\MoveOptions;
 use MertBag\DomainMigrator\Data\MoveResult;
 use MertBag\DomainMigrator\Enums\RiskLevel;
 use MertBag\DomainMigrator\Exceptions\InvalidConfigurationException;
 use MertBag\DomainMigrator\Exceptions\InvalidMigrationPlanException;
+use MertBag\DomainMigrator\Migration\Move\MoveSnapshotStore;
 use MertBag\DomainMigrator\Migration\Rewriting\PhpRewriter;
 use MertBag\DomainMigrator\Migration\Scanning\ClassNameMatcher;
+use MertBag\DomainMigrator\Support\ProjectRelativePath;
 use PhpParser\Error;
+use RuntimeException;
+use Throwable;
 
 /**
  * Moves the classes of one domain into the domain namespace: the files are moved, their namespaces
@@ -26,6 +31,8 @@ final readonly class MoveDomainAction
         private ScanApplicationAction $scan,
         private PlanMigrationAction $plan,
         private PhpRewriter $rewriter,
+        private MoveSnapshotStore $snapshots,
+        private RollbackDomainAction $rollback,
     ) {}
 
     /**
@@ -39,9 +46,11 @@ final readonly class MoveDomainAction
         MigrationOptions $migration,
         BoundaryMap $map,
         string $domain,
+        MoveOptions $moveOptions,
         ?string $mapPath = null,
         bool $dryRun = false,
         bool $force = false,
+        bool $withoutBackup = false,
     ): MoveResult {
         $scan = $this->scan->execute($options);
         $plan = $this->plan->executeWithScan($scan, $options->basePath, $migration, $map, $domain);
@@ -54,7 +63,7 @@ final readonly class MoveDomainAction
             throw InvalidMigrationPlanException::breaking($plan->domain, $plan->count(RiskLevel::Breaking));
         }
 
-        $basePath = rtrim(str_replace('\\', '/', $options->basePath), '/');
+        $basePath = rtrim(str_replace('\\', '/', realpath($options->basePath) ?: $options->basePath), '/');
         $classes = [];
         $byFile = [];
 
@@ -70,6 +79,8 @@ final readonly class MoveDomainAction
         $known = array_fill_keys(array_keys($scan->graph->nodes), true);
         $files = array_unique([...array_keys($byFile), ...array_map(fn ($reference): string => $reference->file, $plan->references)]);
         sort($files);
+
+        $originals = $this->originals($basePath, $files, $mapPath);
 
         $contents = [];
         $manual = [];
@@ -95,11 +106,74 @@ final readonly class MoveDomainAction
             ARRAY_FILTER_USE_BOTH,
         ));
 
-        if (! $dryRun) {
-            $this->write($basePath, $moved, $contents, $updated);
+        $backupId = null;
+        $backupRelativePath = null;
+        $shouldBackup = ! $dryRun && $moveOptions->backup && ! $withoutBackup;
+        $backupManifest = null;
+
+        if ($shouldBackup) {
+            $backupManifest = $this->snapshots->write(
+                $basePath,
+                $moveOptions,
+                $plan->domain,
+                $mapPath,
+                $moved,
+                $this->relativePaths($basePath, $updated),
+                $originals,
+            );
+            $backupId = $backupManifest->id;
+            $backupRelativePath = $moveOptions->backupPath.'/'.$backupManifest->id;
         }
 
-        return new MoveResult($plan, $moved, $updated, array_values(array_unique($manual)), $dryRun);
+        if (! $dryRun) {
+            try {
+                $this->write($basePath, $moved, $contents, $updated);
+            } catch (Throwable $exception) {
+                if ($backupManifest !== null) {
+                    $this->rollback->execute($basePath, $moveOptions, $backupManifest);
+                }
+
+                throw $exception;
+            }
+        }
+
+        return new MoveResult($plan, $moved, $this->relativePaths($basePath, $updated), array_values(array_unique($manual)), $dryRun, $backupId, $backupRelativePath);
+    }
+
+    /**
+     * @param  list<string>  $files
+     * @return array<string, string>
+     */
+    private function originals(string $basePath, array $files, ?string $mapPath): array
+    {
+        $originals = [];
+
+        foreach ($files as $file) {
+            $path = $this->absolute($basePath, $file);
+
+            if (is_file($path)) {
+                $originals[ProjectRelativePath::toRelative($path, $basePath)] = (string) file_get_contents($path);
+            }
+        }
+
+        if ($mapPath !== null && is_file($mapPath)) {
+            $relative = ProjectRelativePath::toRelative($mapPath, $basePath);
+            $originals[$relative] = (string) file_get_contents($mapPath);
+        }
+
+        return $originals;
+    }
+
+    /**
+     * @param  list<string>  $paths
+     * @return list<string>
+     */
+    private function relativePaths(string $basePath, array $paths): array
+    {
+        return array_map(
+            fn (string $path): string => ProjectRelativePath::toRelative($this->absolute($basePath, $path), $basePath),
+            $paths,
+        );
     }
 
     /**
@@ -147,8 +221,8 @@ final readonly class MoveDomainAction
         foreach ($moved as $from => $to) {
             $target = $this->absolute($basePath, $to);
 
-            if (! is_dir(dirname($target))) {
-                mkdir(dirname($target), 0777, true);
+            if (! is_dir(dirname($target)) && ! mkdir(dirname($target), 0777, true) && ! is_dir(dirname($target))) {
+                throw new RuntimeException("Could not create directory for [{$to}].");
             }
 
             file_put_contents($target, $contents[$from]);

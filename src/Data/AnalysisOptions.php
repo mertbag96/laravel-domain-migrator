@@ -52,8 +52,11 @@ final readonly class AnalysisOptions
             throw InvalidConfigurationException::invalidValue('report.hotspots', 'a positive integer');
         }
 
+        $resolved = rtrim($basePath ?? $defaultBasePath, '/');
+        $resolved = rtrim(str_replace('\\', '/', realpath($resolved) ?: $resolved), '/');
+
         return new self(
-            basePath: rtrim($basePath ?? $defaultBasePath, '/'),
+            basePath: $resolved,
             paths: self::stringList($config, 'paths'),
             exclude: self::stringList($config, 'exclude'),
             weights: DependencyWeights::fromConfig($config['weights'] ?? []),

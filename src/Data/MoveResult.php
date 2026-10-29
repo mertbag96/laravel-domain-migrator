@@ -17,5 +17,7 @@ final readonly class MoveResult
         public array $updated,
         public array $manual,
         public bool $dryRun,
+        public ?string $backupId = null,
+        public ?string $backupRelativePath = null,
     ) {}
 }
