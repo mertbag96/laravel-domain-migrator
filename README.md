@@ -14,7 +14,7 @@ composer require --dev mertbag96/laravel-domain-migrator:^0.4.4
 php artisan domain:analyze --format=html
 ```
 
-> **Status:** pre-1.0. Analyze, enforce boundaries and dry-run migration plans are usable today; `domain:move` is next on the roadmap. The API may still change between minor versions.
+> **Status:** pre-1.0. Analyze, enforce boundaries and dry-run migration plans are usable today; `domain:move` is available as an early version. The API may still change between minor versions.
 
 ![HTML report for Snipe-IT: app title, domain graph, and move risks for the Assets domain](https://raw.githubusercontent.com/mertbag96/laravel-domain-migrator/main/art/html-report.png)
 
@@ -39,7 +39,7 @@ The package works in three phases:
 
 1. **Analyze** (read-only, available now) — parses your app, builds a weighted dependency graph of models, relationships, controllers, jobs, events and services, suggests candidate domains and a shared kernel, ranks **where to start** (move readiness in the console, JSON and HTML reports), and highlights coupling hot spots.
 2. **Enforce** (available now) — fails CI when a class starts depending on a domain its own domain is not allowed to use, with a baseline for existing violations. Run it as `domain:check`, as a PHPStan rule or as a Pest arch preset; all three read the same domain map.
-3. **Migrate** (planning available now) — `domain:plan` shows where each class of a domain would move in `app/Domain/{Name}`, which files refer to them, and what the move would break: polymorphic types, queued payloads, database notifications, broadcast names, factory, policy and listener discovery, and class names in strings. `domain:move`, which performs the move, is next.
+3. **Migrate** (planning available now) — `domain:plan` shows where each class of a domain would move in `app/Domain/{Name}`, which files refer to them, and what the move would break: polymorphic types, queued payloads, database notifications, broadcast names, factory, policy and listener discovery, and class names in strings. `domain:move` performs the move: it moves the files, rewrites their namespaces and updates every reference.
 
 It does not try to "do DDD for you". Modeling the business is still your job; this package removes the mechanical work and the risk around it.
 
@@ -295,6 +295,19 @@ References are searched in `app`, `bootstrap`, `config`, `database`, `routes`, `
 php artisan domain:plan Posts --format=json > plan.json
 ```
 
+### Move a domain
+
+`domain:move` performs what `domain:plan` shows:
+
+```bash
+php artisan domain:move Posts --dry-run   # list what would change, write nothing
+php artisan domain:move Posts             # move it
+```
+
+It moves each class file to its planned path, rewrites the `namespace` line, updates `use` imports and fully qualified names, updates class names in strings, Blade views and JSON or YAML files, and updates the domain map. A class that was reached through its old namespace without an import gets an import. The move stops when the plan has a blocker; `--force` moves anyway when the plan only has breaking risks. Review the plan first, then run `composer dump-autoload` and your tests.
+
+Not rewritten, and listed afterwards: grouped imports (`use App\Models\{A, B}`) and class names in comments. Commit before you move so that the result is easy to review.
+
 ## How it works
 
 ### Dependencies
@@ -375,7 +388,8 @@ Classes are grouped with the [Louvain community detection algorithm](https://arx
 | 0.4.2 | Application name and project path on HTML and JSON reports | Done |
 | 0.4.3 | Contributing and security docs; README examples (Snipe-IT, Koel); refreshed screenshots | Done |
 | 0.4.4 | Windows: relative paths for analyze and `domain:plan` (fixes false PSR-4 path blockers) | Done |
-| 0.5–1.0 | `domain:move`: moves a domain and rewrites its references, with Laravel-aware safety handling | Next |
+| 0.5 | `domain:move`: moves a domain, rewrites its namespaces and references | Early version |
+| 0.6–1.0 | `domain:move`: grouped imports, comments, Laravel-aware fixes for the plan's risks, rollback | Next |
 
 ## Testing
 

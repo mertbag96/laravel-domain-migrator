@@ -56,4 +56,33 @@ final readonly class ClassNameMatcher
 
         return $matches;
     }
+
+    /**
+     * Rewrites the matched class names that are keys of the map, keeping the writing style of each one
+     * (a leading backslash, single or escaped double backslashes).
+     *
+     * @param  array<string, string>  $map  Old class name => new class name.
+     */
+    public static function replace(string $text, array $map): string
+    {
+        if ($map === [] || ! str_contains($text, '\\')) {
+            return $text;
+        }
+
+        return (string) preg_replace_callback(self::NAME, static function (array $match) use ($map): string {
+            $class = (string) preg_replace('/\\\\+/', '\\', ltrim($match[0], '\\'));
+
+            if (! isset($map[$class])) {
+                return $match[0];
+            }
+
+            $new = $map[$class];
+
+            if (str_contains($match[0], '\\\\')) {
+                $new = str_replace('\\', '\\\\', $new);
+            }
+
+            return substr($match[0], 0, strspn($match[0], '\\')).$new;
+        }, $text);
+    }
 }

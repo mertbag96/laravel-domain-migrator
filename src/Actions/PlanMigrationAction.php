@@ -48,9 +48,17 @@ final readonly class PlanMigrationAction
      */
     public function execute(AnalysisOptions $options, MigrationOptions $migration, BoundaryMap $map, string $domain): MigrationPlan
     {
-        $definition = $this->domain($map, $domain);
+        return $this->executeWithScan($this->scan->execute($options), $options->basePath, $migration, $map, $domain);
+    }
 
-        return $this->plan([$definition], $this->scan->execute($options), $options->basePath, $migration, $map)[0];
+    /**
+     * Plans one domain from a scan the caller already has.
+     *
+     * @throws InvalidMigrationPlanException
+     */
+    public function executeWithScan(ScanResult $scan, string $basePath, MigrationOptions $migration, BoundaryMap $map, string $domain): MigrationPlan
+    {
+        return $this->plan([$this->domain($map, $domain)], $scan, $basePath, $migration, $map)[0];
     }
 
     /**
