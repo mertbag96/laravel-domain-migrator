@@ -9,6 +9,7 @@ use Illuminate\Contracts\Foundation\Application;
 use MertBag\DomainMigrator\Actions\PlanMigrationAction;
 use MertBag\DomainMigrator\Commands\AnalyzeCommand;
 use MertBag\DomainMigrator\Commands\CheckCommand;
+use MertBag\DomainMigrator\Commands\MoveCommand;
 use MertBag\DomainMigrator\Commands\PlanCommand;
 use MertBag\DomainMigrator\Data\AnalysisOptions;
 use MertBag\DomainMigrator\Data\BoundaryOptions;
@@ -46,7 +47,7 @@ final class DomainMigratorServiceProvider extends PackageServiceProvider
         $package
             ->name('domain-migrator')
             ->hasConfigFile()
-            ->hasCommands([AnalyzeCommand::class, CheckCommand::class, PlanCommand::class]);
+            ->hasCommands([AnalyzeCommand::class, CheckCommand::class, MoveCommand::class, PlanCommand::class]);
     }
 
     public function packageRegistered(): void

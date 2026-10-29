@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+`domain:move` arrives as an early version: it performs the move that `domain:plan` previews.
+
+### Added
+
+- `domain:move {Domain}`: moves a domain's classes to `app/Domain/{Name}` and rewrites namespaces, imports, fully qualified names, class names in strings, views and data files, then updates the domain map.
+- `--dry-run` lists every file that would move or change without writing anything.
+- `--force` moves even when the plan has breaking risks; blockers always stop the move.
+- `--map` selects the domain map (default: `boundaries.map`, then `domain-map.json`).
+
 ## [0.4.4] - 2026-10-29
 
 Windows path handling for migration planning and analysis.
