@@ -80,6 +80,10 @@ it('updates imports and class names in the files that refer to the moved classes
     $remaining = [];
 
     foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($this->project, FilesystemIterator::SKIP_DOTS)) as $file) {
+        if (str_contains($file->getPathname(), '/.domain-migrator/')) {
+            continue;
+        }
+
         if (preg_match('/\.(php|json)$/', $file->getPathname()) === 1 && ! str_ends_with($file->getPathname(), 'domain-map.json')) {
             preg_match_all('/App\\\\{1,2}(Models|Jobs|Notifications|Events|Listeners|Policies|Livewire|Console\\\\{1,2}Commands|Http\\\\{1,2}Controllers)\\\\{1,2}(Post|Comment|PublishPost|PostPublished|PostWasPublished|NotifyAuthor|PublishScheduledPosts|PostPolicy|PostController|PostList)\b/', (string) file_get_contents($file->getPathname()), $found);
             $remaining = [...$remaining, ...$found[0]];

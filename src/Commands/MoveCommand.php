@@ -10,6 +10,7 @@ use MertBag\DomainMigrator\Boundaries\DomainMapReader;
 use MertBag\DomainMigrator\Data\AnalysisOptions;
 use MertBag\DomainMigrator\Data\BoundaryOptions;
 use MertBag\DomainMigrator\Data\MigrationOptions;
+use MertBag\DomainMigrator\Data\MoveOptions;
 use MertBag\DomainMigrator\Exceptions\InvalidConfigurationException;
 use MertBag\DomainMigrator\Exceptions\InvalidDomainMapException;
 use MertBag\DomainMigrator\Exceptions\InvalidMigrationPlanException;
@@ -21,7 +22,8 @@ final class MoveCommand extends Command
         {domain : The domain from the domain map to move}
         {--map= : The domain map (default: boundaries.map, domain-map.json)}
         {--dry-run : Show what would be moved and updated without writing anything}
-        {--force : Move even when the plan has breaking risks (blockers always stop the move)}';
+        {--force : Move even when the plan has breaking risks (blockers always stop the move)}
+        {--no-backup : Skip writing a rollback backup (not recommended)}';
 
     /** @var string */
     protected $description = 'Move the classes of a domain into the domain namespace and update every reference to them';
@@ -36,9 +38,11 @@ final class MoveCommand extends Command
                 $this->laravel->make(MigrationOptions::class),
                 $mapReader->read($mapPath),
                 $this->stringArgument('domain'),
+                $this->laravel->make(MoveOptions::class),
                 $mapPath,
                 (bool) $this->option('dry-run'),
                 (bool) $this->option('force'),
+                (bool) $this->option('no-backup'),
             );
         } catch (InvalidConfigurationException|InvalidDomainMapException|InvalidMigrationPlanException $exception) {
             $this->components->error($exception->getMessage());
@@ -75,6 +79,12 @@ final class MoveCommand extends Command
             foreach ($result->manual as $item) {
                 $this->line("  {$item}");
             }
+        }
+
+        if ($result->backupRelativePath !== null) {
+            $this->newLine();
+            $this->line("  Backup: {$result->backupRelativePath}");
+            $this->line('  Rollback: php artisan domain:rollback '.$result->backupId);
         }
 
         $this->newLine();

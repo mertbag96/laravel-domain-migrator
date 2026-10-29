@@ -148,4 +148,20 @@ return [
         'baseline' => 'domain-baseline.json',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | domain:move backups
+    |--------------------------------------------------------------------------
+    |
+    | Before a real move, a snapshot of every touched file is written here
+    | (relative to the application base path). Restore with domain:rollback.
+    | Add ".domain-migrator/" to .gitignore in the application.
+    |
+    */
+
+    'move' => [
+        'backup' => true,
+        'backup_path' => '.domain-migrator/backups',
+    ],
+
 ];

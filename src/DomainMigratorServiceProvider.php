@@ -11,9 +11,11 @@ use MertBag\DomainMigrator\Commands\AnalyzeCommand;
 use MertBag\DomainMigrator\Commands\CheckCommand;
 use MertBag\DomainMigrator\Commands\MoveCommand;
 use MertBag\DomainMigrator\Commands\PlanCommand;
+use MertBag\DomainMigrator\Commands\RollbackCommand;
 use MertBag\DomainMigrator\Data\AnalysisOptions;
 use MertBag\DomainMigrator\Data\BoundaryOptions;
 use MertBag\DomainMigrator\Data\MigrationOptions;
+use MertBag\DomainMigrator\Data\MoveOptions;
 use MertBag\DomainMigrator\Migration\Risks\BroadcastNameDetector;
 use MertBag\DomainMigrator\Migration\Risks\ConflictDetector;
 use MertBag\DomainMigrator\Migration\Risks\DatabaseNotificationDetector;
@@ -47,7 +49,7 @@ final class DomainMigratorServiceProvider extends PackageServiceProvider
         $package
             ->name('domain-migrator')
             ->hasConfigFile()
-            ->hasCommands([AnalyzeCommand::class, CheckCommand::class, MoveCommand::class, PlanCommand::class]);
+            ->hasCommands([AnalyzeCommand::class, CheckCommand::class, MoveCommand::class, PlanCommand::class, RollbackCommand::class]);
     }
 
     public function packageRegistered(): void
@@ -63,6 +65,10 @@ final class DomainMigratorServiceProvider extends PackageServiceProvider
         ));
 
         $this->app->bind(MigrationOptions::class, static fn (Application $app): MigrationOptions => MigrationOptions::fromConfig(
+            $app->make(Repository::class)->get('domain-migrator'),
+        ));
+
+        $this->app->bind(MoveOptions::class, static fn (Application $app): MoveOptions => MoveOptions::fromConfig(
             $app->make(Repository::class)->get('domain-migrator'),
         ));
 

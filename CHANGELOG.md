@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **`domain:rollback`**: restores file contents from a **`domain:move`** backup (latest or by id, `--list`, `--dry-run`).
+- Move backups written by default to **`.domain-migrator/backups/{id}/`** before each real move; **`domain:move --no-backup`** and **`move.backup`** config to opt out.
+
+### Changed
+
+- **`domain:move`** prints the backup path and a rollback command after a successful move.
+- README: backups, rollback commands, and `.domain-migrator/` gitignore note.
+
 ## [0.5.0] - 2026-10-29
 
 First **`domain:move`** release: an early executor for what `domain:plan` previews ([#8](https://github.com/mertbag96/laravel-domain-migrator/pull/8), thanks [@mhmadahmd](https://github.com/mhmadahmd)).
