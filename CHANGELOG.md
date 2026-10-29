@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Windows: `relativePath()` now normalizes backslashes, so scanned file paths are relative and the "File path does not match the namespace" check no longer flags every class.
+
 ### Changed
 
 - README: `^0.4.3` install example, analyze phase readiness line, roadmap rows for 0.4.2 and 0.4.3.
