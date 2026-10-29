@@ -6,10 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-29
+
+Safer **`domain:move`** with on-disk backups and **`domain:rollback`** ([#11](https://github.com/mertbag96/laravel-domain-migrator/pull/11)).
+
 ### Added
 
 - **`domain:rollback`**: restores file contents from a **`domain:move`** backup (latest or by id, `--list`, `--dry-run`).
 - Move backups written by default to **`.domain-migrator/backups/{id}/`** before each real move; **`domain:move --no-backup`** and **`move.backup`** config to opt out.
+- Automatic restore from the snapshot if a move fails while writing files.
 
 ### Changed
 
@@ -175,7 +180,8 @@ First public release.
 - Coupling metrics per class (dependents, dependencies, instability) and a ranked list of hot spots.
 - Unparsable files are reported instead of aborting the analysis.
 
-[Unreleased]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.4...v0.5.0
 [0.4.4]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.2...v0.4.3
