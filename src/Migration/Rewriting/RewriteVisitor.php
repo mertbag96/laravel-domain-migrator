@@ -61,6 +61,12 @@ final class RewriteVisitor extends NodeVisitorAbstract
         }
 
         if (isset($this->uses[strtolower(explode('\\', $text)[0])])) {
+            // A class import is rewritten with its use statement. A qualified name through an imported
+            // namespace (use App\Http\Controllers\Restaurant; Restaurant\Kitchen::class) has no import of its own.
+            if ($new !== $class && str_contains($text, '\\')) {
+                $this->edits[] = [$start, $end + 1, '\\'.$new];
+            }
+
             return null;
         }
 

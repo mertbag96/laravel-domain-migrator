@@ -115,6 +115,23 @@ it('rewrites class names in strings with single and escaped backslashes', functi
         ->and($result)->toContain("'App\Models\OrderItem'");
 });
 
+it('rewrites a qualified name that goes through an imported namespace', function (): void {
+    $code = <<<'PHP'
+    <?php
+
+    namespace App;
+
+    use App\Http\Controllers\Restaurant;
+
+    return [Restaurant\Kitchen::class, Restaurant\Table::class];
+    PHP;
+
+    $result = rewriteCode($code, ['App\Http\Controllers\Restaurant\Kitchen' => 'App\Domain\Shop\Http\Controllers\Restaurant\Kitchen']);
+
+    expect($result)->toContain('[\App\Domain\Shop\Http\Controllers\Restaurant\Kitchen::class, Restaurant\Table::class]')
+        ->and($result)->toContain('use App\Http\Controllers\Restaurant;');
+});
+
 it('reports a grouped import it cannot rewrite', function (): void {
     $code = "<?php\n\nnamespace App;\n\nuse App\\Models\\{Order, User};\n";
 
