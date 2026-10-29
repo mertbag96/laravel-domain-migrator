@@ -10,7 +10,7 @@ Move a growing Laravel MVC app toward a modular, domain-oriented structure — s
 Run one command to see how your code clusters into domains, which domain to extract first, and what would break if you moved it today:
 
 ```bash
-composer require --dev mertbag96/laravel-domain-migrator:^0.4.3
+composer require --dev mertbag96/laravel-domain-migrator:^0.4.4
 php artisan domain:analyze --format=html
 ```
 
@@ -374,6 +374,7 @@ Classes are grouped with the [Louvain community detection algorithm](https://arx
 | 0.4.1 | Move readiness in analyze (console, JSON, HTML); redesigned HTML report (domain view, matrix, themes) | Done |
 | 0.4.2 | Application name and project path on HTML and JSON reports | Done |
 | 0.4.3 | Contributing and security docs; README examples (Snipe-IT, Koel); refreshed screenshots | Done |
+| 0.4.4 | Windows: relative paths for analyze and `domain:plan` (fixes false PSR-4 path blockers) | Done |
 | 0.5–1.0 | `domain:move`: moves a domain and rewrites its references, with Laravel-aware safety handling | Next |
 
 ## Testing

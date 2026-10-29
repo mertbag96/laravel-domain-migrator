@@ -8,6 +8,7 @@ use MertBag\DomainMigrator\Data\ClassReference;
 use MertBag\DomainMigrator\Data\ProjectScan;
 use MertBag\DomainMigrator\Data\SkippedFile;
 use MertBag\DomainMigrator\Enums\ReferenceKind;
+use MertBag\DomainMigrator\Support\ProjectRelativePath;
 use PhpParser\Error;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
@@ -135,9 +136,6 @@ final readonly class ProjectScanner
 
     private function relativePath(string $absolutePath, string $basePath): string
     {
-        $absolutePath = str_replace('\\', '/', $absolutePath);
-        $basePath = str_replace('\\', '/', realpath($basePath) ?: $basePath).'/';
-
-        return str_starts_with($absolutePath, $basePath) ? substr($absolutePath, strlen($basePath)) : $absolutePath;
+        return ProjectRelativePath::toRelative($absolutePath, $basePath);
     }
 }
