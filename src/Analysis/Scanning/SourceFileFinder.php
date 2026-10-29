@@ -7,6 +7,7 @@ namespace MertBag\DomainMigrator\Analysis\Scanning;
 use MertBag\DomainMigrator\Data\AnalysisOptions;
 use MertBag\DomainMigrator\Data\SourceFile;
 use MertBag\DomainMigrator\Exceptions\InvalidConfigurationException;
+use MertBag\DomainMigrator\Support\ProjectRelativePath;
 use Symfony\Component\Finder\Finder;
 
 final readonly class SourceFileFinder
@@ -44,12 +45,7 @@ final readonly class SourceFileFinder
 
     private function relativePath(string $absolutePath, string $basePath): string
     {
-        $absolutePath = str_replace('\\', '/', $absolutePath);
-        $basePath = str_replace('\\', '/', realpath($basePath) ?: $basePath).'/';
-
-        return str_starts_with($absolutePath, $basePath)
-            ? substr($absolutePath, strlen($basePath))
-            : $absolutePath;
+        return ProjectRelativePath::toRelative($absolutePath, $basePath);
     }
 
     /**

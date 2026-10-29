@@ -6,13 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-10-29
+
+Windows path handling for migration planning and analysis.
+
 ### Fixed
 
-- Windows: `relativePath()` now normalizes backslashes, so scanned file paths are relative and the "File path does not match the namespace" check no longer flags every class.
+- Windows: `relativePath()` now normalizes backslashes, so scanned file paths are relative and the "File path does not match the namespace" check no longer flags every class ([#6](https://github.com/mertbag96/laravel-domain-migrator/issues/6), thanks [@mhmadahmd](https://github.com/mhmadahmd)).
 
-### Changed
+### Added
 
-- README: `^0.4.3` install example, analyze phase readiness line, roadmap rows for 0.4.2 and 0.4.3.
+- Regression test for backslash paths via `ProjectRelativePath` ([#7](https://github.com/mertbag96/laravel-domain-migrator/pull/7)).
 
 ## [0.4.3] - 2026-10-18
 
@@ -140,7 +144,8 @@ First public release.
 - Coupling metrics per class (dependents, dependencies, instability) and a ranked list of hot spots.
 - Unparsable files are reported instead of aborting the analysis.
 
-[Unreleased]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.3...HEAD
+[Unreleased]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.4...HEAD
+[0.4.4]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.0...v0.4.1
