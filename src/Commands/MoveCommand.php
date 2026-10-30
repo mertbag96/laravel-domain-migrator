@@ -6,6 +6,7 @@ namespace MertBag\DomainMigrator\Commands;
 
 use Illuminate\Console\Command;
 use MertBag\DomainMigrator\Actions\MoveDomainAction;
+use MertBag\DomainMigrator\Actions\VerifyMoveAction;
 use MertBag\DomainMigrator\Boundaries\DomainMapReader;
 use MertBag\DomainMigrator\Data\AnalysisOptions;
 use MertBag\DomainMigrator\Data\BoundaryOptions;
@@ -23,12 +24,13 @@ final class MoveCommand extends Command
         {--map= : The domain map (default: boundaries.map, domain-map.json)}
         {--dry-run : Show what would be moved and updated without writing anything}
         {--force : Move even when the plan has breaking risks (blockers always stop the move)}
-        {--no-backup : Skip writing a rollback backup (not recommended)}';
+        {--no-backup : Skip writing a rollback backup (not recommended)}
+        {--verify : After the move, check that every written file parses and that planning the domain again finds nothing left to move}';
 
     /** @var string */
     protected $description = 'Move the classes of a domain into the domain namespace and update every reference to them';
 
-    public function handle(MoveDomainAction $move, DomainMapReader $mapReader): int
+    public function handle(MoveDomainAction $move, VerifyMoveAction $verify, DomainMapReader $mapReader): int
     {
         try {
             $mapPath = $this->stringOption('map') ?? $this->laravel->make(BoundaryOptions::class)->mapPath;
@@ -90,7 +92,49 @@ final class MoveCommand extends Command
         $this->newLine();
         $this->components->info($result->dryRun ? 'Dry run: nothing was changed.' : 'Done. Run composer dump-autoload, then your tests.');
 
+        if ($this->option('verify') && ! $result->dryRun) {
+            return $this->verify($verify, $mapReader, $mapPath, $result->plan->domain, [...array_values($result->moved), ...$result->updated], $result->backupId);
+        }
+
         return self::SUCCESS;
+    }
+
+    /**
+     * @param  list<string>  $files
+     */
+    private function verify(VerifyMoveAction $verify, DomainMapReader $mapReader, string $mapPath, string $domain, array $files, ?string $backupId): int
+    {
+        try {
+            $verification = $verify->execute(
+                $this->laravel->make(AnalysisOptions::class),
+                $this->laravel->make(MigrationOptions::class),
+                $mapReader->read($mapPath),
+                $domain,
+                $files,
+            );
+        } catch (InvalidConfigurationException|InvalidDomainMapException|InvalidMigrationPlanException $exception) {
+            $this->components->error("Could not verify the move: {$exception->getMessage()}");
+
+            return self::FAILURE;
+        }
+
+        if ($verification->passed()) {
+            $this->components->info(sprintf('Verified: %d %s parse and nothing is left to move.', count($files), count($files) === 1 ? 'file' : 'files'));
+
+            return self::SUCCESS;
+        }
+
+        $this->components->warn('Verification found problems:');
+
+        foreach ($verification->problems as $problem) {
+            $this->line("  {$problem}");
+        }
+
+        $this->line($backupId === null
+            ? '  The move was kept. Fix these by hand.'
+            : "  The move was kept. Fix these by hand, or restore the files with: php artisan domain:rollback {$backupId}");
+
+        return self::FAILURE;
     }
 
     private function stringArgument(string $name): string

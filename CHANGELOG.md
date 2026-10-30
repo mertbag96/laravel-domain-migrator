@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `domain:move --verify`: after a real move, checks that every written file exists and parses and that planning the domain again finds nothing left to move. It exits with a failure and lists the problems otherwise, pointing to `domain:rollback` when a backup was written. It does nothing on `--dry-run`.
+
 ## [0.6.0] - 2026-10-29
 
 Safer **`domain:move`** with on-disk backups and **`domain:rollback`** ([#11](https://github.com/mertbag96/laravel-domain-migrator/pull/11)).

@@ -3,6 +3,10 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Artisan;
+use MertBag\DomainMigrator\Actions\VerifyMoveAction;
+use MertBag\DomainMigrator\Boundaries\DomainMapReader;
+use MertBag\DomainMigrator\Data\AnalysisOptions;
+use MertBag\DomainMigrator\Data\MigrationOptions;
 
 beforeEach(function (): void {
     $this->project = blogCopy();
@@ -108,4 +112,32 @@ it('leaves every file parsable and the plan with nothing left to move', function
 
     expect($plan['summary']['moves'])->toBe(0)
         ->and($plan['summary']['in_place'])->toBe(10);
+});
+
+it('verifies a finished move', function (): void {
+    [$exitCode, $output] = moveOutput(['domain' => 'Posts', '--force' => true, '--verify' => true]);
+
+    expect($exitCode)->toBe(0)->and($output)->toContain('Verified:');
+});
+
+it('does not verify on a dry run', function (): void {
+    [$exitCode, $output] = moveOutput(['domain' => 'Posts', '--force' => true, '--dry-run' => true, '--verify' => true]);
+
+    expect($exitCode)->toBe(0)->and($output)->not->toContain('Verified');
+});
+
+it('reports files that no longer parse or are missing after a move', function (): void {
+    moveOutput(['domain' => 'Posts', '--force' => true]);
+    file_put_contents($this->project.'/app/Domain/Posts/Models/Post.php', "<?php\nclass {\n");
+
+    $result = app(VerifyMoveAction::class)->execute(
+        app(AnalysisOptions::class),
+        app(MigrationOptions::class),
+        app(DomainMapReader::class)->read($this->mapPath),
+        'Posts',
+        ['app/Domain/Posts/Models/Post.php', 'app/Domain/Posts/Missing.php'],
+    );
+
+    expect($result->passed())->toBeFalse()
+        ->and(implode("\n", $result->problems))->toContain('app/Domain/Posts/Models/Post.php does not parse', 'app/Domain/Posts/Missing.php is missing');
 });
