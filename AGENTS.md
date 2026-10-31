@@ -50,7 +50,7 @@ Paths shown to users must be project-relative and Windows-safe. Use `Support/Pro
 
 ## Laravel Boost resources
 
-`resources/boost/guidelines/core.blade.php` (always loaded, keep it short) and `resources/boost/skills/domain-migrator/SKILL.md` (on demand) teach agents in users' apps how to use the package. When a command, option, exit code, config key or safety behavior changes, update them in the same change. The guideline is compiled by Blade, so wrap any `@` or `{{ }}` in `@verbatim`. The skill is plain Markdown.
+`resources/boost/guidelines/core.blade.php` (always loaded, keep it short) and `resources/boost/skills/domain-migrator/SKILL.md` (on demand) teach agents in users' apps how to use the package. When a command, option, exit code, config key or safety behavior changes, update them in the same change. Likewise, keep `docs/json-output.md` in sync with the `toArray()` methods of `AnalysisReport`, `BoundaryCheckResult` and `MigrationPlan`. The guideline is compiled by Blade, so wrap any `@` or `{{ }}` in `@verbatim`. The skill is plain Markdown.
 
 ## Changelog
 

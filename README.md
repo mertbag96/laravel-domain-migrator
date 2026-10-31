@@ -106,6 +106,8 @@ php artisan domain:analyze --format=json --output=domain-analysis.json
 
 The JSON report contains every class with its role, domain and coupling metrics, every dependency with its link types and weight, the suggested domains, move readiness for each domain (status, risks and counts), and the hot spots.
 
+Every field of the analyze, check and plan JSON is described in the [JSON output reference](docs/json-output.md).
+
 ### Domain map
 
 ```bash

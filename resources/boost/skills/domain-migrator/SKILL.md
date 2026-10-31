@@ -25,7 +25,7 @@ Use it when the user wants to:
 | `php artisan domain:move {Domain} [--dry-run] [--force] [--no-backup]` | Yes, rewrites app code | Move the domain's files and update namespaces, imports, strings, views, data files and the map |
 | `php artisan domain:rollback [id] [--list] [--dry-run]` | Yes | Restore files from a backup written by `domain:move` |
 
-Prefer `--format=json` when you need to parse the output: `domain:analyze --format=json` and `domain:plan {Domain} --format=json` contain every class, dependency, risk and reference.
+Prefer `--format=json` when you need to parse the output: `domain:analyze --format=json` and `domain:plan {Domain} --format=json` contain every class, dependency, risk and reference. Every field is described in `vendor/mertbag96/laravel-domain-migrator/docs/json-output.md`.
 
 ## The domain map
 
