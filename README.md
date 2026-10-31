@@ -10,11 +10,11 @@ Move a growing Laravel MVC app toward a modular, domain-oriented structure — s
 Run one command to see how your code clusters into domains, which domain to extract first, and what would break if you moved it today:
 
 ```bash
-composer require --dev mertbag96/laravel-domain-migrator:^0.6.0
+composer require --dev mertbag96/laravel-domain-migrator:^0.7.0
 php artisan domain:analyze --format=html
 ```
 
-> **Status:** pre-1.0. **Analyze**, **boundaries**, and **`domain:plan`** are the stable core today. **`domain:move`** (since 0.5.0) is an **early** executor: run **`domain:plan`**, then **`domain:move --dry-run`**, commit on a branch, and handle breaking risks yourself — the tool does not fix morph maps, queues, or similar runtime breaks. Each move writes a **backup** under `.domain-migrator/backups/`; use **`domain:rollback`** to restore file contents (still run tests and `composer dump-autoload` after). The API may still change between minor versions.
+> **Status:** pre-1.0. **Analyze**, **boundaries**, and **`domain:plan`** are the stable core today. **`domain:move`** (since 0.5.0) is an **early** executor: run **`domain:plan`**, then **`domain:move --dry-run`**, work on a branch, move with **`--verify`** to check the result, and handle breaking risks yourself — the tool does not fix morph maps, queues, or similar runtime breaks. Each move writes a **backup** under `.domain-migrator/backups/`; use **`domain:rollback`** to restore file contents (still run tests and `composer dump-autoload` after). The API may still change between minor versions.
 
 ![HTML report for Snipe-IT: app title, domain graph, and move risks for the Assets domain](https://raw.githubusercontent.com/mertbag96/laravel-domain-migrator/main/art/html-report.png)
 
@@ -421,7 +421,8 @@ Classes are grouped with the [Louvain community detection algorithm](https://arx
 | 0.4.4 | Windows: relative paths for analyze and `domain:plan` (fixes false PSR-4 path blockers) | Done |
 | 0.5.0 | `domain:move` (early): file moves and reference rewrites; plan gates blockers and breaking risks | Done |
 | 0.6.0 | `domain:rollback` and on-disk move backups (default before each move) | Done |
-| 0.7–1.0 | Grouped imports and comments, Laravel-aware fixes for plan breaking risks | Next |
+| 0.7.0 | `domain:move --verify`, Laravel Boost resources for AI agents, JSON output reference, Windows absolute paths | Done |
+| 0.8–1.0 | Grouped imports and comments, Laravel-aware fixes for plan breaking risks | Next |
 
 ## Testing
 

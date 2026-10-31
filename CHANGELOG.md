@@ -6,15 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Fixed
+## [0.7.0] - 2026-11-01
 
-- Absolute Windows paths (`C:\...`) in `boundaries.map`, `boundaries.baseline`, `paths` and `domain.reference_paths` were treated as relative to the project, so the domain map was reported as missing. They are now recognized as absolute.
+**`domain:move --verify`** ([#13](https://github.com/mertbag96/laravel-domain-migrator/pull/13)), Laravel Boost resources for AI coding agents ([#14](https://github.com/mertbag96/laravel-domain-migrator/pull/14)), and a Windows path fix ([#18](https://github.com/mertbag96/laravel-domain-migrator/pull/18)). Thanks [@mhmadahmd](https://github.com/mhmadahmd) for #13 and #18.
 
 ### Added
 
 - `domain:move --verify`: after a real move, checks that the old files are gone, that every written PHP file parses, that the moved classes are part of the domain, that planning the domain again finds nothing left to move, and that no file still refers to an old class name. It exits with a failure and lists the problems otherwise, pointing to `domain:rollback` when a backup was written. It does nothing on `--dry-run`.
 - [Laravel Boost](https://laravel.com/docs/boost) resources: package guidelines and a `domain-migrator` skill that teach AI coding agents the safe analyze, check, plan, move and rollback workflow. Run `php artisan boost:install` or `boost:update` in your app to pick them up.
 - [JSON output reference](docs/json-output.md) for `domain:analyze`, `domain:check` and `domain:plan`.
+
+### Fixed
+
+- Absolute Windows paths (`C:\...`) in `boundaries.map`, `boundaries.baseline`, `paths` and `domain.reference_paths` were treated as relative to the project, so the domain map was reported as missing. They are now recognized as absolute.
 
 ## [0.6.0] - 2026-10-29
 
@@ -190,7 +194,8 @@ First public release.
 - Coupling metrics per class (dependents, dependencies, instability) and a ranked list of hot spots.
 - Unparsable files are reported instead of aborting the analysis.
 
-[Unreleased]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.4...v0.5.0
 [0.4.4]: https://github.com/mertbag96/laravel-domain-migrator/compare/v0.4.3...v0.4.4
