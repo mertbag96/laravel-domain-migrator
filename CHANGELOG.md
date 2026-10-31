@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- `domain:move --verify`: after a real move, checks that every written file exists and parses and that planning the domain again finds nothing left to move. It exits with a failure and lists the problems otherwise, pointing to `domain:rollback` when a backup was written. It does nothing on `--dry-run`.
+- `domain:move --verify`: after a real move, checks that the old files are gone, that every written PHP file parses, that the moved classes are part of the domain, that planning the domain again finds nothing left to move, and that no file still refers to an old class name. It exits with a failure and lists the problems otherwise, pointing to `domain:rollback` when a backup was written. It does nothing on `--dry-run`.
 - [Laravel Boost](https://laravel.com/docs/boost) resources: package guidelines and a `domain-migrator` skill that teach AI coding agents the safe analyze, check, plan, move and rollback workflow. Run `php artisan boost:install` or `boost:update` in your app to pick them up.
 - [JSON output reference](docs/json-output.md) for `domain:analyze`, `domain:check` and `domain:plan`.
 

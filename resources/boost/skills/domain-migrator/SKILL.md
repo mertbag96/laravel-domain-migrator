@@ -22,7 +22,7 @@ Use it when the user wants to:
 | `php artisan domain:analyze --map=domain-map.json [--update] [--force]` | The domain map | Write the suggested domains. `--update` keeps reviewed domains and rules and only places new classes. `--force` overwrites an existing map |
 | `php artisan domain:check [--format=console\|json\|github] [--generate-baseline]` | Only with `--generate-baseline` | Fail on dependencies that `depends_on` does not allow. Exit codes: `0` pass, `1` new violations, `2` invalid map, baseline or config |
 | `php artisan domain:plan {Domain} [--format=console\|json]` | No | Show target paths, the files that refer to the domain's classes, and risks |
-| `php artisan domain:move {Domain} [--dry-run] [--force] [--no-backup] [--verify]` | Yes, rewrites app code | Move the domain's files and update namespaces, imports, strings, views, data files and the map. `--verify` then checks the result and exits `1` on problems, leaving the move in place (see below) |
+| `php artisan domain:move {Domain} [--dry-run] [--force] [--no-backup] [--verify]` | Yes, rewrites app code | Move the domain's files and update namespaces, imports, strings, views, data files and the map. `--verify` then checks the result and exits `1` on problems (`2` for an invalid map or config), leaving the move in place (see below) |
 | `php artisan domain:rollback [id] [--list] [--dry-run]` | Yes | Restore files from a backup written by `domain:move` |
 
 Prefer `--format=json` when you need to parse the output: `domain:analyze --format=json` and `domain:plan {Domain} --format=json` contain every class, dependency, risk and reference. Every field is described in `vendor/mertbag96/laravel-domain-migrator/docs/json-output.md`.
@@ -73,7 +73,7 @@ When a check fails, remove the dependency (move the logic, use an event or depen
 4. Make sure you are on a git branch with a clean working tree.
 5. `php artisan domain:move {Domain} --dry-run` and read every path with the user. Suggested domains can contain classes that belong elsewhere, so edit `domain-map.json` until the dry run looks right. Dry runs are also refused while breaking risks remain: use `--dry-run --force` only to preview.
 6. `php artisan domain:move {Domain} --verify`. Add `--force` only with the user's explicit approval, after the breaking risks are handled. Never use `--no-backup` unless the user asks.
-7. If `--verify` exits with a failure, read the listed problems (a file that is missing or no longer parses, or classes the plan still wants to move). The move is kept, so fix them by hand or restore with `domain:rollback`. `--verify` does nothing on `--dry-run`, and it does not run your tests or `domain:check`.
+7. If `--verify` exits with a failure, read the listed problems (an old file that still exists, a file that is missing or no longer parses, classes the plan still wants to move, or a leftover reference to an old class name such as a grouped import). The move is kept, so fix them by hand or restore with `domain:rollback`. `--verify` does nothing on `--dry-run`, and it does not run your tests or `domain:check`.
 8. `composer dump-autoload`, then run the test suite and `domain:check`.
 9. Fix what the move lists as "Needs a look by hand". Grouped imports (`use App\Models\{A, B}`) and class names in comments are not rewritten.
 

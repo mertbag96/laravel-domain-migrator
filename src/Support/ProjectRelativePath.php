@@ -18,6 +18,8 @@ final class ProjectRelativePath
 
     public static function toAbsolute(string $path, string $basePath): string
     {
-        return preg_match('#^(/|[A-Za-z]:[\\\\/])#', $path) === 1 ? $path : $basePath.'/'.$path;
+        $path = str_replace('\\', '/', $path);
+
+        return preg_match('#^(/|[A-Za-z]:/)#', $path) === 1 ? $path : $basePath.'/'.$path;
     }
 }

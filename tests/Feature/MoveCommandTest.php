@@ -3,10 +3,13 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Artisan;
+use MertBag\DomainMigrator\Actions\PlanMigrationAction;
 use MertBag\DomainMigrator\Actions\VerifyMoveAction;
 use MertBag\DomainMigrator\Boundaries\DomainMapReader;
 use MertBag\DomainMigrator\Data\AnalysisOptions;
 use MertBag\DomainMigrator\Data\MigrationOptions;
+use MertBag\DomainMigrator\Data\MigrationPlan;
+use MertBag\DomainMigrator\Data\VerificationResult;
 
 beforeEach(function (): void {
     $this->project = blogCopy();
@@ -126,31 +129,80 @@ it('does not verify on a dry run', function (): void {
     expect($exitCode)->toBe(0)->and($output)->not->toContain('Verified');
 });
 
-it('reports classes that would still move', function (): void {
-    $result = app(VerifyMoveAction::class)->execute(
+/**
+ * Verifies a move the way the command does: with the plan that was executed and the files it wrote.
+ *
+ * @param  list<string>  $files
+ */
+function verifyMove(MigrationPlan $plan, array $files): VerificationResult
+{
+    return app(VerifyMoveAction::class)->execute(
         app(AnalysisOptions::class),
         app(MigrationOptions::class),
-        app(DomainMapReader::class)->read($this->mapPath),
-        'Posts',
-        [],
+        app(DomainMapReader::class)->read(test()->mapPath),
+        $plan,
+        $files,
     );
+}
+
+function planBeforeMove(): MigrationPlan
+{
+    return app(PlanMigrationAction::class)->execute(
+        app(AnalysisOptions::class),
+        app(MigrationOptions::class),
+        app(DomainMapReader::class)->read(test()->mapPath),
+        'Posts',
+    );
+}
+
+it('reports old files that still exist, classes that would still move and classes outside the domain', function (): void {
+    $plan = planBeforeMove();
+
+    $result = verifyMove($plan, []);
+    $problems = implode("\n", $result->problems);
 
     expect($result->passed())->toBeFalse()
-        ->and(implode("\n", $result->problems))->toContain('would still move to', 'run domain:plan Posts');
+        ->and($problems)->toContain('app/Models/Post.php still exists after being moved to app/Domain/Posts/Models/Post.php', 'would still move to', 'run domain:plan Posts', 'App\Domain\Posts\Models\Post is not part of Posts');
 });
 
 it('reports files that no longer parse or are missing after a move', function (): void {
+    $plan = planBeforeMove();
     moveOutput(['domain' => 'Posts', '--force' => true]);
     file_put_contents($this->project.'/app/Domain/Posts/Models/Post.php', "<?php\nclass {\n");
 
-    $result = app(VerifyMoveAction::class)->execute(
-        app(AnalysisOptions::class),
-        app(MigrationOptions::class),
-        app(DomainMapReader::class)->read($this->mapPath),
-        'Posts',
-        ['app/Domain/Posts/Models/Post.php', 'app/Domain/Posts/Missing.php'],
-    );
+    $result = verifyMove($plan, ['app/Domain/Posts/Models/Post.php', 'app/Domain/Posts/Missing.php']);
 
     expect($result->passed())->toBeFalse()
         ->and(implode("\n", $result->problems))->toContain('app/Domain/Posts/Models/Post.php does not parse', 'app/Domain/Posts/Missing.php is missing');
+});
+
+it('reports files that still refer to an old class name', function (): void {
+    $plan = planBeforeMove();
+    moveOutput(['domain' => 'Posts', '--force' => true]);
+    file_put_contents($this->project.'/app/Stale.php', "<?php\n\nnamespace App;\n\nuse App\Models\Post;\n\nfinal class Stale\n{\n    public string \$model = Post::class;\n}\n");
+
+    $result = verifyMove($plan, []);
+
+    expect($result->passed())->toBeFalse()
+        ->and(implode("\n", $result->problems))->toContain('app/Stale.php:5 still refers to App\Models\Post');
+});
+
+it('reports moved classes that the domain map no longer covers', function (): void {
+    $plan = planBeforeMove();
+    moveOutput(['domain' => 'Posts', '--force' => true]);
+
+    $map = json_decode((string) file_get_contents($this->mapPath), true, flags: JSON_THROW_ON_ERROR);
+
+    foreach ($map['domains'] as $index => $domain) {
+        if ($domain['name'] === 'Posts') {
+            $map['domains'][$index]['classes'] = ['App\Domain\Posts\Models\Elsewhere'];
+        }
+    }
+
+    file_put_contents($this->mapPath, json_encode($map));
+
+    $result = verifyMove($plan, []);
+
+    expect($result->passed())->toBeFalse()
+        ->and(implode("\n", $result->problems))->toContain('App\Domain\Posts\Models\Post is not part of Posts');
 });

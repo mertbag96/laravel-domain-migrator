@@ -8,8 +8,9 @@ final readonly class VerificationResult
 {
     /**
      * @param  list<string>  $problems  What is still wrong after the move; empty when the move checks out.
+     * @param  int  $parsed  How many PHP files were parsed.
      */
-    public function __construct(public array $problems = []) {}
+    public function __construct(public array $problems = [], public int $parsed = 0) {}
 
     public function passed(): bool
     {

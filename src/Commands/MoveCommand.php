@@ -11,6 +11,7 @@ use MertBag\DomainMigrator\Boundaries\DomainMapReader;
 use MertBag\DomainMigrator\Data\AnalysisOptions;
 use MertBag\DomainMigrator\Data\BoundaryOptions;
 use MertBag\DomainMigrator\Data\MigrationOptions;
+use MertBag\DomainMigrator\Data\MigrationPlan;
 use MertBag\DomainMigrator\Data\MoveOptions;
 use MertBag\DomainMigrator\Exceptions\InvalidConfigurationException;
 use MertBag\DomainMigrator\Exceptions\InvalidDomainMapException;
@@ -90,40 +91,37 @@ final class MoveCommand extends Command
         }
 
         $this->newLine();
-        $verifying = (bool) $this->option('verify') && ! $result->dryRun;
 
-        if (! $verifying) {
+        if (! $this->option('verify') || $result->dryRun) {
             $this->components->info($result->dryRun ? 'Dry run: nothing was changed.' : 'Done. Run composer dump-autoload, then your tests.');
+
+            return self::SUCCESS;
         }
 
-        if ($verifying) {
-            return $this->verify($verify, $mapReader, $mapPath, $result->plan->domain, [...array_values($result->moved), ...$result->updated], $result->backupId);
-        }
-
-        return self::SUCCESS;
+        return $this->verify($verify, $mapReader, $mapPath, $result->plan, [...array_values($result->moved), ...$result->updated], $result->backupId);
     }
 
     /**
      * @param  list<string>  $files
      */
-    private function verify(VerifyMoveAction $verify, DomainMapReader $mapReader, string $mapPath, string $domain, array $files, ?string $backupId): int
+    private function verify(VerifyMoveAction $verify, DomainMapReader $mapReader, string $mapPath, MigrationPlan $plan, array $files, ?string $backupId): int
     {
         try {
             $verification = $verify->execute(
                 $this->laravel->make(AnalysisOptions::class),
                 $this->laravel->make(MigrationOptions::class),
                 $mapReader->read($mapPath),
-                $domain,
+                $plan,
                 $files,
             );
         } catch (InvalidConfigurationException|InvalidDomainMapException|InvalidMigrationPlanException $exception) {
             $this->components->error("Could not verify the move: {$exception->getMessage()}");
 
-            return self::FAILURE;
+            return self::INVALID;
         }
 
         if ($verification->passed()) {
-            $this->components->info(sprintf('Verified: %d %s parse and nothing is left to move. Run composer dump-autoload, then your tests.', count($files), count($files) === 1 ? 'file' : 'files'));
+            $this->components->info(sprintf('Verified: %d PHP %s parse, the old files are gone and nothing refers to an old class name. Run composer dump-autoload, then your tests.', $verification->parsed, $verification->parsed === 1 ? 'file' : 'files'));
 
             return self::SUCCESS;
         }
