@@ -25,3 +25,13 @@ it('leaves forward-slash paths unchanged on unix', function (): void {
 
     expect(ProjectRelativePath::toRelative($absolute, $base))->toBe('app/Model.php');
 });
+
+it('keeps absolute paths and puts relative ones under the base path', function (string $path, string $expected): void {
+    expect(ProjectRelativePath::toAbsolute($path, '/srv/app'))->toBe($expected);
+})->with([
+    'relative' => ['app/Models/Post.php', '/srv/app/app/Models/Post.php'],
+    'relative with backslashes' => ['app\Models\Post.php', '/srv/app/app/Models/Post.php'],
+    'unix absolute' => ['/var/www/app/Post.php', '/var/www/app/Post.php'],
+    'windows absolute' => ['C:\www\app\Post.php', 'C:/www/app/Post.php'],
+    'windows absolute with slashes' => ['D:/www/app/Post.php', 'D:/www/app/Post.php'],
+]);
