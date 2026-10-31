@@ -309,6 +309,8 @@ php artisan domain:move Posts --verify    # move it, then check the result
 
 It moves each class file to its planned path, rewrites the `namespace` line, updates `use` imports and fully qualified names, updates class names in strings, Blade views and JSON or YAML files, and updates the domain map. A class that was reached through its old namespace without an import gets an import. The move stops when the plan has a blocker; `--force` moves anyway when the plan only has breaking risks. Review the plan first, then run `composer dump-autoload` and your tests.
 
+`--verify` runs after a real move: every file the move wrote must still exist and parse, and planning the domain again must find nothing left to move. This scans the project a second time, so it adds to the run time on large apps. When something is off, the command lists the problems and exits with code `1`. The move stays in place, so fix it by hand or restore with `domain:rollback`. It does nothing on `--dry-run`.
+
 > **Before you run a real move**
 >
 > 1. Run **`domain:plan {Domain}`** and fix **blockers**.
@@ -326,8 +328,6 @@ php artisan domain:rollback --dry-run       # preview a restore
 ```
 
 Disable backups with `domain:move --no-backup` or `'move.backup' => false` in config (not recommended).
-
-`--verify` runs after a real move: every file the move wrote must still exist and parse, and planning the domain again must find nothing left to move. When something is off, the command exits with a failure and lists the problems. The move stays in place, so fix it by hand or restore with `domain:rollback`. It does nothing on `--dry-run`.
 
 ### AI coding agents (Laravel Boost)
 

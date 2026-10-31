@@ -22,7 +22,7 @@ Use it when the user wants to:
 | `php artisan domain:analyze --map=domain-map.json [--update] [--force]` | The domain map | Write the suggested domains. `--update` keeps reviewed domains and rules and only places new classes. `--force` overwrites an existing map |
 | `php artisan domain:check [--format=console\|json\|github] [--generate-baseline]` | Only with `--generate-baseline` | Fail on dependencies that `depends_on` does not allow. Exit codes: `0` pass, `1` new violations, `2` invalid map, baseline or config |
 | `php artisan domain:plan {Domain} [--format=console\|json]` | No | Show target paths, the files that refer to the domain's classes, and risks |
-| `php artisan domain:move {Domain} [--dry-run] [--force] [--no-backup] [--verify]` | Yes, rewrites app code | Move the domain's files and update namespaces, imports, strings, views, data files and the map. `--verify` then checks the result (see below) |
+| `php artisan domain:move {Domain} [--dry-run] [--force] [--no-backup] [--verify]` | Yes, rewrites app code | Move the domain's files and update namespaces, imports, strings, views, data files and the map. `--verify` then checks the result and exits `1` on problems, leaving the move in place (see below) |
 | `php artisan domain:rollback [id] [--list] [--dry-run]` | Yes | Restore files from a backup written by `domain:move` |
 
 Prefer `--format=json` when you need to parse the output: `domain:analyze --format=json` and `domain:plan {Domain} --format=json` contain every class, dependency, risk and reference. Every field is described in `vendor/mertbag96/laravel-domain-migrator/docs/json-output.md`.

@@ -90,9 +90,13 @@ final class MoveCommand extends Command
         }
 
         $this->newLine();
-        $this->components->info($result->dryRun ? 'Dry run: nothing was changed.' : 'Done. Run composer dump-autoload, then your tests.');
+        $verifying = (bool) $this->option('verify') && ! $result->dryRun;
 
-        if ($this->option('verify') && ! $result->dryRun) {
+        if (! $verifying) {
+            $this->components->info($result->dryRun ? 'Dry run: nothing was changed.' : 'Done. Run composer dump-autoload, then your tests.');
+        }
+
+        if ($verifying) {
             return $this->verify($verify, $mapReader, $mapPath, $result->plan->domain, [...array_values($result->moved), ...$result->updated], $result->backupId);
         }
 
@@ -119,7 +123,7 @@ final class MoveCommand extends Command
         }
 
         if ($verification->passed()) {
-            $this->components->info(sprintf('Verified: %d %s parse and nothing is left to move.', count($files), count($files) === 1 ? 'file' : 'files'));
+            $this->components->info(sprintf('Verified: %d %s parse and nothing is left to move. Run composer dump-autoload, then your tests.', count($files), count($files) === 1 ? 'file' : 'files'));
 
             return self::SUCCESS;
         }

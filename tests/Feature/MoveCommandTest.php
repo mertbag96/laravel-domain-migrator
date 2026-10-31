@@ -117,13 +117,26 @@ it('leaves every file parsable and the plan with nothing left to move', function
 it('verifies a finished move', function (): void {
     [$exitCode, $output] = moveOutput(['domain' => 'Posts', '--force' => true, '--verify' => true]);
 
-    expect($exitCode)->toBe(0)->and($output)->toContain('Verified:');
+    expect($exitCode)->toBe(0)->and($output)->toContain('Verified:')->not->toContain('Done.');
 });
 
 it('does not verify on a dry run', function (): void {
     [$exitCode, $output] = moveOutput(['domain' => 'Posts', '--force' => true, '--dry-run' => true, '--verify' => true]);
 
     expect($exitCode)->toBe(0)->and($output)->not->toContain('Verified');
+});
+
+it('reports classes that would still move', function (): void {
+    $result = app(VerifyMoveAction::class)->execute(
+        app(AnalysisOptions::class),
+        app(MigrationOptions::class),
+        app(DomainMapReader::class)->read($this->mapPath),
+        'Posts',
+        [],
+    );
+
+    expect($result->passed())->toBeFalse()
+        ->and(implode("\n", $result->problems))->toContain('would still move to', 'run domain:plan Posts');
 });
 
 it('reports files that no longer parse or are missing after a move', function (): void {

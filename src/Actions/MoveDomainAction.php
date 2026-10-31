@@ -236,6 +236,6 @@ final readonly class MoveDomainAction
 
     private function absolute(string $basePath, string $file): string
     {
-        return preg_match('#^(/|[A-Za-z]:[\\\\/])#', $file) === 1 ? $file : $basePath.'/'.$file;
+        return ProjectRelativePath::toAbsolute($file, $basePath);
     }
 }

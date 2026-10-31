@@ -10,6 +10,7 @@ use MertBag\DomainMigrator\Data\MigrationOptions;
 use MertBag\DomainMigrator\Data\VerificationResult;
 use MertBag\DomainMigrator\Exceptions\InvalidConfigurationException;
 use MertBag\DomainMigrator\Exceptions\InvalidMigrationPlanException;
+use MertBag\DomainMigrator\Support\ProjectRelativePath;
 use PhpParser\Error;
 use PhpParser\ParserFactory;
 
@@ -37,7 +38,7 @@ final readonly class VerifyMoveAction
         $parser = (new ParserFactory)->createForHostVersion();
 
         foreach ($files as $file) {
-            $path = preg_match('#^(/|[A-Za-z]:[\\\\/])#', $file) === 1 ? $file : $basePath.'/'.$file;
+            $path = ProjectRelativePath::toAbsolute($file, $basePath);
 
             if (! is_file($path)) {
                 $problems[] = "{$file} is missing";
