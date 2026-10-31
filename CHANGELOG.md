@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Absolute Windows paths (`C:\...`) in `boundaries.map`, `boundaries.baseline`, `paths` and `domain.reference_paths` were treated as relative to the project, so the domain map was reported as missing. They are now recognized as absolute.
+
 ### Added
 
 - [Laravel Boost](https://laravel.com/docs/boost) resources: package guidelines and a `domain-migrator` skill that teach AI coding agents the safe analyze, check, plan, move and rollback workflow. Run `php artisan boost:install` or `boost:update` in your app to pick them up.

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MertBag\DomainMigrator\Data;
 
 use MertBag\DomainMigrator\Exceptions\InvalidConfigurationException;
+use MertBag\DomainMigrator\Support\ProjectRelativePath;
 
 final readonly class BoundaryOptions
 {
@@ -42,6 +43,6 @@ final readonly class BoundaryOptions
             throw InvalidConfigurationException::invalidValue("boundaries.{$key}", 'a file path');
         }
 
-        return str_starts_with($path, '/') ? $path : rtrim($basePath, '/').'/'.$path;
+        return ProjectRelativePath::toAbsolute($path, rtrim($basePath, '/'));
     }
 }
