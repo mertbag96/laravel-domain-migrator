@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Absolute Windows paths (`C:\...`) in `boundaries.map`, `boundaries.baseline`, `paths` and `domain.reference_paths` were treated as relative to the project, so the domain map was reported as missing. They are now recognized as absolute.
+
 ### Added
 
 - `domain:move --verify`: after a real move, checks that the old files are gone, that every written PHP file parses, that the moved classes are part of the domain, that planning the domain again finds nothing left to move, and that no file still refers to an old class name. It exits with a failure and lists the problems otherwise, pointing to `domain:rollback` when a backup was written. It does nothing on `--dry-run`.

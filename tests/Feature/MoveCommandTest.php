@@ -87,7 +87,7 @@ it('updates imports and class names in the files that refer to the moved classes
     $remaining = [];
 
     foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($this->project, FilesystemIterator::SKIP_DOTS)) as $file) {
-        if (str_contains($file->getPathname(), '/.domain-migrator/')) {
+        if (str_contains(str_replace(chr(92), '/', $file->getPathname()), '/.domain-migrator/')) {
             continue;
         }
 

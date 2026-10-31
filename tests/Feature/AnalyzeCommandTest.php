@@ -29,7 +29,7 @@ it('prints the report as json', function (): void {
 
     expect($report['schema'])->toBe(1)
         ->and($report['application']['name'])->toBe(config('app.name'))
-        ->and($report['application']['base_path'])->toBe(config('domain-migrator.base_path'))
+        ->and($report['application']['base_path'])->toBe(str_replace(chr(92), '/', (string) config('domain-migrator.base_path')))
         ->and($report['summary']['classes'])->toBe(18)
         ->and($report['summary']['skipped_files'])->toBe(1)
         ->and($report['kinds']['model'])->toBe(5)

@@ -22,7 +22,7 @@ final readonly class SourceFileFinder
         $files = [];
 
         foreach ($options->paths as $path) {
-            $directory = str_starts_with($path, '/') ? $path : $options->basePath.'/'.$path;
+            $directory = ProjectRelativePath::toAbsolute($path, $options->basePath);
 
             if (! is_dir($directory)) {
                 throw InvalidConfigurationException::missingPath($path);

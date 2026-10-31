@@ -89,7 +89,7 @@ final readonly class ProjectScanner
         $files = [];
 
         foreach ($paths as $path) {
-            $directory = str_starts_with($path, '/') ? $path : $basePath.'/'.$path;
+            $directory = ProjectRelativePath::toAbsolute($path, $basePath);
 
             if (! is_dir($directory)) {
                 continue;

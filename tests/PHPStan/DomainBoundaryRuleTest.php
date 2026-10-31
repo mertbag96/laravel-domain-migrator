@@ -102,7 +102,9 @@ it('is registered by extension.neon', function (): void {
     $process->run();
     unlink($config);
 
-    $errors = json_decode($process->getOutput(), true)['files'][fixturePath('app/Actions/PlaceOrderAction.php')]['messages'] ?? [];
+    $files = json_decode($process->getOutput(), true)['files'] ?? [];
+    $files = array_combine(array_map(fn (string $path): string => str_replace(chr(92), '/', $path), array_keys($files)), $files);
+    $errors = $files[str_replace(chr(92), '/', fixturePath('app/Actions/PlaceOrderAction.php'))]['messages'] ?? [];
     $boundaryErrors = array_values(array_filter($errors, fn (array $error): bool => ($error['identifier'] ?? null) === 'domainMigrator.boundary'));
 
     expect(array_column($boundaryErrors, 'line'))->toBe([7, 9]);
