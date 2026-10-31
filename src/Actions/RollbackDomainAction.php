@@ -9,6 +9,7 @@ use MertBag\DomainMigrator\Data\MoveSnapshotManifest;
 use MertBag\DomainMigrator\Data\RollbackResult;
 use MertBag\DomainMigrator\Exceptions\MoveRollbackException;
 use MertBag\DomainMigrator\Migration\Move\MoveSnapshotStore;
+use MertBag\DomainMigrator\Support\ProjectRelativePath;
 
 final readonly class RollbackDomainAction
 {
@@ -113,9 +114,7 @@ final readonly class RollbackDomainAction
 
     private function absolute(string $basePath, string $file): string
     {
-        $file = str_replace('\\', '/', $file);
-
-        return preg_match('#^(/|[A-Za-z]:[\\\\/])#', $file) === 1 ? $file : $basePath.'/'.$file;
+        return ProjectRelativePath::toAbsolute($file, $basePath);
     }
 
     private function normalizeBase(string $basePath): string
