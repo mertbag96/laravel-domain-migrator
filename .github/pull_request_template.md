@@ -14,6 +14,7 @@
 
 ## Checklist
 
+- [ ] Self-reviewed the diff (AI-written PRs: ran a code review and addressed the findings)
 - [ ] Tests cover the change (`composer test`)
 - [ ] `CHANGELOG.md` has an entry under `[Unreleased]` (if users will notice the change)
 - [ ] `README.md` updated (if a command, option or config key changed)
