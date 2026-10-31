@@ -1,5 +1,6 @@
 * text=auto eol=lf
 
+/.claude            export-ignore
 /.github            export-ignore
 /art                export-ignore
 /scripts            export-ignore
@@ -11,3 +12,5 @@
 /phpstan.neon.dist  export-ignore
 /pint.json          export-ignore
 /CHANGELOG.md       export-ignore
+/AGENTS.md          export-ignore
+/CLAUDE.md          export-ignore

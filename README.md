@@ -106,6 +106,8 @@ php artisan domain:analyze --format=json --output=domain-analysis.json
 
 The JSON report contains every class with its role, domain and coupling metrics, every dependency with its link types and weight, the suggested domains, move readiness for each domain (status, risks and counts), and the hot spots.
 
+Every field of the analyze, check and plan JSON is described in the [JSON output reference](docs/json-output.md).
+
 ### Domain map
 
 ```bash
@@ -323,6 +325,10 @@ php artisan domain:rollback --dry-run       # preview a restore
 ```
 
 Disable backups with `domain:move --no-backup` or `'move.backup' => false` in config (not recommended).
+
+### AI coding agents (Laravel Boost)
+
+The package ships [Laravel Boost](https://laravel.com/docs/boost) resources, so AI coding agents in your app learn the safe workflow: analyze, plan, dry run, move and roll back, and when to run `domain:check`. If your app uses Boost, run `php artisan boost:install` (or `boost:update`) after installing or upgrading the package. Boost then adds the package guidelines and offers the `domain-migrator` skill.
 
 ## How it works
 

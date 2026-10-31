@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- [Laravel Boost](https://laravel.com/docs/boost) resources: package guidelines and a `domain-migrator` skill that teach AI coding agents the safe analyze, check, plan, move and rollback workflow. Run `php artisan boost:install` or `boost:update` in your app to pick them up.
+- [JSON output reference](docs/json-output.md) for `domain:analyze`, `domain:check` and `domain:plan`.
+
 ## [0.6.0] - 2026-10-29
 
 Safer **`domain:move`** with on-disk backups and **`domain:rollback`** ([#11](https://github.com/mertbag96/laravel-domain-migrator/pull/11)).
