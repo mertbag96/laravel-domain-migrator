@@ -56,6 +56,10 @@ Paths shown to users must be project-relative and Windows-safe. Use `Support/Pro
 
 For any user-visible change (behavior, commands, options, config, report JSON, domain map), add an entry under `## [Unreleased]` in `CHANGELOG.md` in the same change, using Keep a Changelog groups (`Added`, `Changed`, `Fixed`, `Removed`) and the existing writing style. Mark breaking changes explicitly. Never create version headings, pick version numbers or edit `composer.json` versions: the maintainer does releases by hand. Internal refactors and test-only changes need no entry.
 
+## Before opening a PR
+
+Run `composer test`, `composer analyse` and `vendor/bin/pint --test`, then review the branch diff against `main` (in Claude Code: `/code-review`). Fix real findings, and go through the checklist in `.github/pull_request_template.md` against the diff. Note any finding you deliberately leave unfixed under "Notes for reviewers".
+
 ## Tests
 
 - Feature tests use Orchestra Testbench; PHPStan rule tests extend `tests/PHPStan/RuleTestCase`.
